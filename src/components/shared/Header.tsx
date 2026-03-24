@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { signOut } from "@/actions/auth";
 
 const routes = {
   about: [
@@ -110,7 +111,7 @@ export function Header({ user }: { user: AppwriteUser }) {
                     <span className="material-symbols-outlined text-sm">pets</span> Мои корги
                   </Link>
                   <div className="border-t border-stone-100 my-1"></div>
-                  <form action="/api/auth/logout" method="POST">
+                  <form action={signOut}>
                     <button type="submit" className="w-full text-left px-6 py-3 text-sm font-semibold text-error hover:bg-red-50 transition-colors flex items-center gap-2 outline-none">
                       <span className="material-symbols-outlined text-sm">logout</span> Выход
                     </button>

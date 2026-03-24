@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { YandexMap } from "@/components/map/YandexMap";
+import type { MapMarker } from "@/components/map/YandexMap";
 import { useRef } from "react";
+
+const MAIN_MAP_MARKERS: MapMarker[] = [
+  { id: "1", coordinates: [30.2596, 59.9714], title: "Парк 300-летия", subtitle: "Большая территория у залива", color: "green" },
+  { id: "2", coordinates: [30.3349, 59.9537], title: "Таврический сад", subtitle: "Вечерние прогулки", color: "green" },
+  { id: "3", coordinates: [30.3095, 59.9685], title: "Dog-friendly кафе «Лапки»", subtitle: "Петроградская", color: "orange" },
+  { id: "4", coordinates: [30.2987, 59.9278], title: "Юсуповский сад", subtitle: "Корги-пикники", color: "green" },
+  { id: "5", coordinates: [30.2867, 59.9567], title: "Кафе «Хвост и Усы»", subtitle: "В.О., 6-я линия", color: "orange" },
+];
 
 export default function Home() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -191,7 +200,7 @@ export default function Home() {
       <section className="px-6 py-24 bg-white" id="map">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-16 items-center">
           <div className="lg:col-span-7 order-2 lg:order-1 h-full min-h-[400px]">
-            <YandexMap />
+            <YandexMap markers={MAIN_MAP_MARKERS} />
           </div>
           <div className="lg:col-span-5 order-1 lg:order-2">
             <h2 className="text-4xl lg:text-5xl font-black font-display text-on-surface mb-8 leading-tight">Где погулять пушистым?</h2>

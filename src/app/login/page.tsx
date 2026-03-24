@@ -3,11 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: { error?: string };
+}) {
   return (
     <div className="flex-1 flex items-center justify-center p-6 pt-32 pb-16 min-h-[calc(100vh-80px)]">
       <div className="w-full max-w-md bg-surface-container-lowest p-8 rounded-[2rem] shadow-ambient">
         <h1 className="text-display font-bold text-2xl text-primary mb-6 text-center">Войти</h1>
+        {searchParams.error && (
+          <div className="mb-4 p-3 bg-error-container text-on-error-container rounded-xl text-sm text-center font-medium">
+            {decodeURIComponent(searchParams.error)}
+          </div>
+        )}
         <form action={signInWithEmail} className="space-y-4">
           <div>
             <label className="text-sm font-medium mb-1 tracking-wide text-on-surface/80 block">Email</label>

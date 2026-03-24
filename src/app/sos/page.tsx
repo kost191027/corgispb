@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import SosModal from "@/components/shared/SosModal";
+import { YandexMap } from "@/components/map/YandexMap";
+import type { MapMarker } from "@/components/map/YandexMap";
 
 const LOST_NOTICES = [
   {
@@ -46,6 +48,12 @@ const LOST_NOTICES = [
     btnText: "Связаться с владельцем",
     dateColor: "text-primary"
   }
+];
+
+const SOS_MARKERS: MapMarker[] = [
+  { id: "1", coordinates: [30.2146, 59.9722], title: "Арчи — Парк 300-летия", subtitle: "Пропал 12.10", color: "red" },
+  { id: "2", coordinates: [30.2727, 59.9398], title: "Неизвестный Кардиган — В.О.", subtitle: "Замечен вчера", color: "teal" },
+  { id: "3", coordinates: [30.0845, 60.0651], title: "Белла — Шуваловский парк", subtitle: "Пропала 10.10", color: "red" },
 ];
 
 export default function LostAndFoundPage() {
@@ -141,33 +149,12 @@ export default function LostAndFoundPage() {
             </div>
           </div>
 
-          <div className="relative h-[400px] md:h-[600px] w-full bg-surface-container-high rounded-[2.5rem] overflow-hidden shadow-inner group border border-outline-variant/10">
-            <img 
-              alt="Map of St Petersburg" 
-              className="w-full h-full object-cover opacity-60 grayscale-[50%] group-hover:scale-[1.02] transition-transform duration-[3s]" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAs8udV4Nziw9vqbFkQ8z7xNRT1pH6qkY9IMgepzLl2EuMbnnjm4CQTrpw-4gi1RSnuLBtRa0tjOSC0miXtfoH0Hh5X94bMJYn_OEeFVp1W3_3fm3ga7ewAd6QV0w1E0ywOFjPWundhHelfwcM_ebhnrWxZFqf64kjHHkScvn8eiMqQmDOSIIXdyZ1ILYKL6vNnUfY74nFge3wCEmz5nX30yV0N1FLmjHO5a-eFj8PB0aG4doZ2AoHBp4ssJciqaAMKTiMQwwAXR2M" 
-              crossOrigin="anonymous" 
-            />
-            
-            {/* Mock Map Pins */}
-            <div className="absolute top-1/4 left-1/3 group-hover:scale-110 transition-transform cursor-pointer drop-shadow-xl z-20">
-              <div className="material-symbols-outlined text-error text-5xl origin-bottom animate-bounce" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</div>
-              <div className="absolute bottom-[110%] left-1/2 -translate-x-1/2 mb-2 bg-surface-container-lowest px-4 py-2 rounded-xl text-xs font-black shadow-lg whitespace-nowrap border-b-4 border-error">Срочно! Арчи</div>
-            </div>
-            
-            <div className="absolute bottom-1/3 right-1/4 group-hover:scale-110 transition-transform cursor-pointer drop-shadow-xl z-10">
-              <div className="material-symbols-outlined text-tertiary text-5xl origin-bottom" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</div>
-              <div className="absolute bottom-[110%] left-1/2 -translate-x-1/2 mb-2 bg-surface-container-lowest px-4 py-2 rounded-xl text-xs font-black shadow-lg whitespace-nowrap border-b-4 border-tertiary opacity-0 group-hover:opacity-100 transition-opacity">Неизвестный Cardigan</div>
-            </div>
-
-            {/* Map Overlay Control */}
-            <div className="absolute bottom-8 left-8 right-8 md:right-auto bg-surface-container-lowest/80 backdrop-blur-md p-4 rounded-xl shadow-lg flex items-center gap-4 border border-outline-variant/20 z-30">
-              <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center">
-                <span className="material-symbols-outlined text-on-surface-variant">zoom_in</span>
-              </div>
-              <span className="text-sm font-bold opacity-80">Используйте колесо мыши для масштабирования</span>
-            </div>
-          </div>
+          <YandexMap
+            markers={SOS_MARKERS}
+            zoom={11}
+            height="600px"
+            className="rounded-[2.5rem] border border-outline-variant/10"
+          />
         </section>
 
         {/* Current Alerts Grid */}

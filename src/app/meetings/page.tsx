@@ -1,7 +1,14 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
+import { YandexMap } from "@/components/map/YandexMap";
+import type { MapMarker } from "@/components/map/YandexMap";
+
+const MEETING_MARKERS: MapMarker[] = [
+  { id: "1", coordinates: [30.2146, 59.9722], title: "Забег в Парке 300-летия", subtitle: "15 июня, 12:00", color: "orange" },
+  { id: "2", coordinates: [30.3312, 59.9435], title: "Кинолог: Марсово поле", subtitle: "18 июня, 18:30", color: "teal" },
+  { id: "3", coordinates: [30.2987, 59.9278], title: "Пикник: Юсуповский сад", subtitle: "22 июня, 14:00", color: "green" },
+];
 
 export default function MeetingsPage() {
   return (
@@ -226,54 +233,13 @@ export default function MeetingsPage() {
           </p>
         </div>
         
-        <div className="h-[500px] w-full bg-surface-container-high rounded-2xl relative overflow-hidden shadow-inner border border-outline-variant/20">
-          <img 
-            alt="Stylized map of Saint Petersburg" 
-            className="w-full h-full object-cover opacity-70 grayscale" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxSPOd6tXEYYTrYzB_4V6x0BB52NqMfcEY4pbdTx2ScodOv6-mlCVcrVmixfCtNFumXbzRUA6gYo7PEM7OgLlr92-d7VOZL3Lz8LDsGQOuCDKWax-1s7Eg5mXYkN7cKwm7ilZiLj3OMCphT2Xk4l_juJRNbDeNvBAgnhJ5TMxH7Po9DqyPxdgNWL_SGxJJz-QwncGlHYZXVy-wCl9Svjkn7wtULCqCLB0M4REoMwBMWsNJLWgGM2AisAh_o1jPHo3hQFWI4udkOeo" 
-            crossOrigin="anonymous" 
+        <div className="h-[500px] w-full rounded-2xl overflow-hidden border border-outline-variant/20">
+          <YandexMap
+            markers={MEETING_MARKERS}
+            zoom={12}
+            height="500px"
+            className="rounded-2xl"
           />
-          <div className="absolute inset-0 bg-primary/5 pointer-events-none mix-blend-multiply"></div>
-          
-          {/* Mock Markers */}
-          <div className="absolute top-1/4 left-1/3">
-            <div className="relative group cursor-pointer z-10 hover:z-20">
-              <div className="bg-gradient-to-r from-primary to-primary-container text-white p-2.5 rounded-full shadow-lg shadow-primary/30 scale-110 group-hover:scale-125 transition-transform">
-                <span className="material-symbols-outlined block text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>pets</span>
-              </div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-surface-container-lowest text-on-surface p-3 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-outline-variant/10">
-                <p className="font-bold text-sm font-headline mb-1">Забег в Парке 300-летия</p>
-                <p className="text-xs text-on-surface-variant">15 июня, 12:00</p>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-surface-container-lowest rotate-45 border-b border-r border-outline-variant/10"></div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="absolute top-1/2 left-1/2">
-            <div className="relative group cursor-pointer z-10 hover:z-20">
-              <div className="bg-gradient-to-r from-tertiary to-teal-700 text-white p-2.5 rounded-full shadow-lg shadow-tertiary/30 group-hover:scale-125 transition-transform">
-                <span className="material-symbols-outlined block text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
-              </div>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-surface-container-lowest text-on-surface p-3 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-outline-variant/10">
-                <p className="font-bold text-sm font-headline mb-1">Кинолог: Марсово поле</p>
-                <p className="text-xs text-on-surface-variant">18 июня, 18:30</p>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-surface-container-lowest rotate-45 border-b border-r border-outline-variant/10"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Interaction Overlay */}
-          <div className="absolute bottom-6 right-6 flex flex-col gap-3">
-            <button className="bg-white/90 backdrop-blur p-3.5 rounded-full shadow-md text-on-surface hover:bg-white hover:text-primary transition-all active:scale-95">
-              <span className="material-symbols-outlined">add</span>
-            </button>
-            <button className="bg-white/90 backdrop-blur p-3.5 rounded-full shadow-md text-on-surface hover:bg-white hover:text-primary transition-all active:scale-95">
-              <span className="material-symbols-outlined">remove</span>
-            </button>
-            <button className="bg-white/90 backdrop-blur p-3.5 rounded-full shadow-md text-primary hover:bg-white hover:text-primary-container transition-all active:scale-95 mt-2">
-              <span className="material-symbols-outlined">my_location</span>
-            </button>
-          </div>
         </div>
       </section>
 
