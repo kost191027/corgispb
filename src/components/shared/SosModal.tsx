@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 
 export default function SosModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

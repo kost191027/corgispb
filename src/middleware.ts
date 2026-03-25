@@ -15,11 +15,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Redirect to cabinet if user is already logged in
-  if ((request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register')) && session) {
-    return NextResponse.redirect(new URL('/cabinet', request.url))
-  }
-
   return NextResponse.next()
 }
 

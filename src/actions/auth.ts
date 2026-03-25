@@ -1,12 +1,45 @@
 "use server";
 
-import { ID, Databases } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { cookies } from "next/headers";
 import { createAdminClient, createSessionClient } from "@/lib/server/appwrite";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || "corgi_db";
 const USERS_COLLECTION = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || "users_corgi";
+const PETS_COLLECTION = process.env.NEXT_PUBLIC_APPWRITE_PETS_COLLECTION || "pets_corgi";
+
+export type CurrentUser = {
+  $id: string;
+  name: string;
+  email: string;
+};
+
+export type CurrentUserProfile = CurrentUser & {
+  city: string | null;
+  phone: string | null;
+  bio: string | null;
+  role: string | null;
+  avatarUrl: string | null;
+  hasProfileDocument: boolean;
+};
+
+export type CurrentUserPet = {
+  id: string;
+  name: string;
+  breed: string;
+  gender: string | null;
+  birthDate: string | null;
+  description: string | null;
+  photoUrl: string | null;
+  isPublic: boolean;
+};
+
+export type CabinetData = {
+  user: CurrentUserProfile | null;
+  pets: CurrentUserPet[];
+};
 
 export async function signUpWithEmail(formData: FormData): Promise<void> {
   const name = formData.get("name") as string;
@@ -98,11 +131,7 @@ export async function signOut() {
 }
 
 // Returns a plain serializable object
-export async function getCurrentUser(): Promise<{
-  $id: string;
-  name: string;
-  email: string;
-} | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   try {
     const { account } = await createSessionClient();
     const user = await account.get();
@@ -114,4 +143,124 @@ export async function getCurrentUser(): Promise<{
   } catch {
     return null;
   }
-}
+});
+
+export const getCurrentUserProfile = cache(async (): Promise<CurrentUserProfile | null> => {
+  try {
+    const { account, databases } = await createSessionClient();
+    const user = await account.get();
+
+    try {
+      const profile = await databases.getDocument(DB_ID, USERS_COLLECTION, user.$id);
+      return {
+        $id: user.$id,
+        name: String(profile.name || user.name),
+        email: String(profile.email || user.email),
+        city: profile.city ? String(profile.city) : "Санкт-Петербург",
+        phone: profile.phone ? String(profile.phone) : null,
+        bio: profile.bio ? String(profile.bio) : null,
+        role: profile.role ? String(profile.role) : "owner",
+        avatarUrl: profile.avatar_url ? String(profile.avatar_url) : null,
+        hasProfileDocument: true,
+      };
+    } catch {
+      return {
+        $id: user.$id,
+        name: user.name,
+        email: user.email,
+        city: "Санкт-Петербург",
+        phone: null,
+        bio: null,
+        role: "owner",
+        avatarUrl: null,
+        hasProfileDocument: false,
+      };
+    }
+  } catch {
+    return null;
+  }
+});
+
+export const getCurrentUserPets = cache(async (): Promise<CurrentUserPet[]> => {
+  try {
+    const { account, databases } = await createSessionClient();
+    const user = await account.get();
+    const response = await databases.listDocuments(DB_ID, PETS_COLLECTION, [
+      Query.equal("user_id", user.$id),
+      Query.orderDesc("$createdAt"),
+      Query.limit(12),
+    ]);
+
+    return response.documents.map((pet) => ({
+      id: pet.$id,
+      name: String(pet.name || "Без имени"),
+      breed: String(pet.breed || "Пемброк"),
+      gender: pet.gender ? String(pet.gender) : null,
+      birthDate: pet.birth_date ? String(pet.birth_date) : null,
+      description: pet.description ? String(pet.description) : null,
+      photoUrl: pet.photo_url ? String(pet.photo_url) : null,
+      isPublic: typeof pet.is_public === "boolean" ? pet.is_public : true,
+    }));
+  } catch {
+    return [];
+  }
+});
+
+export const getCabinetData = cache(async (): Promise<CabinetData> => {
+  try {
+    const { account, databases } = await createSessionClient();
+    const user = await account.get();
+
+    const [profileResult, petsResult] = await Promise.allSettled([
+      databases.getDocument(DB_ID, USERS_COLLECTION, user.$id),
+      databases.listDocuments(DB_ID, PETS_COLLECTION, [
+        Query.equal("user_id", user.$id),
+        Query.orderDesc("$createdAt"),
+        Query.limit(12),
+      ]),
+    ]);
+
+    const profile =
+      profileResult.status === "fulfilled"
+        ? {
+            $id: user.$id,
+            name: String(profileResult.value.name || user.name),
+            email: String(profileResult.value.email || user.email),
+            city: profileResult.value.city ? String(profileResult.value.city) : "Санкт-Петербург",
+            phone: profileResult.value.phone ? String(profileResult.value.phone) : null,
+            bio: profileResult.value.bio ? String(profileResult.value.bio) : null,
+            role: profileResult.value.role ? String(profileResult.value.role) : "owner",
+            avatarUrl: profileResult.value.avatar_url ? String(profileResult.value.avatar_url) : null,
+            hasProfileDocument: true,
+          }
+        : {
+            $id: user.$id,
+            name: user.name,
+            email: user.email,
+            city: "Санкт-Петербург",
+            phone: null,
+            bio: null,
+            role: "owner",
+            avatarUrl: null,
+            hasProfileDocument: false,
+          };
+
+    const pets =
+      petsResult.status === "fulfilled"
+        ? petsResult.value.documents.map((pet) => ({
+            id: pet.$id,
+            name: String(pet.name || "Без имени"),
+            breed: String(pet.breed || "Пемброк"),
+            gender: pet.gender ? String(pet.gender) : null,
+            birthDate: pet.birth_date ? String(pet.birth_date) : null,
+            description: pet.description ? String(pet.description) : null,
+            photoUrl: pet.photo_url ? String(pet.photo_url) : null,
+            isPublic: typeof pet.is_public === "boolean" ? pet.is_public : true,
+          }))
+        : [];
+
+    return { user: profile, pets };
+  } catch {
+    return { user: null, pets: [] };
+  }
+});
