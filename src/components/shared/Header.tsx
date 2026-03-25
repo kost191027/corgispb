@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { CurrentUserProfile } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/actions/auth";
 
@@ -23,9 +25,45 @@ const routes = {
   ],
 };
 
-type AppwriteUser = { name?: string; email?: string } | null;
+type HeaderProps = {
+  user: CurrentUserProfile | null;
+  isLoadingUser?: boolean;
+};
 
-export function Header({ user }: { user: AppwriteUser }) {
+export function Header({ user, isLoadingUser = false }: HeaderProps) {
+  const router = useRouter();
+  const userInitial = user?.name?.trim()?.charAt(0)?.toUpperCase() ?? "К";
+
+  React.useEffect(() => {
+    const routesToPrefetch = [
+      "/",
+      "/about",
+      "/about/how-to-choose",
+      "/about/health",
+      "/community",
+      "/community/map",
+      "/community/forum",
+      "/pets",
+      "/sos",
+      "/calculator",
+      "/breeders",
+      user ? "/cabinet" : "/login",
+    ];
+
+    const uniqueRoutes = Array.from(new Set(routesToPrefetch));
+    const prefetch = () => {
+      uniqueRoutes.forEach((href) => router.prefetch(href));
+    };
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(prefetch);
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(prefetch, 250);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, [router, user]);
+
   return (
     <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(55,47,45,0.06)]">
       <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto w-full">
@@ -71,10 +109,10 @@ export function Header({ user }: { user: AppwriteUser }) {
 
           {/* Сервисы */}
           <div className="relative group">
-            <Link href="/services" className="flex items-center gap-1 text-stone-600 hover:text-orange-600 font-display font-bold text-sm tracking-tight px-4 py-2 hover:bg-orange-50 rounded-full transition-all active:scale-95">
+            <button type="button" className="flex items-center gap-1 text-stone-600 hover:text-orange-600 font-display font-bold text-sm tracking-tight px-4 py-2 hover:bg-orange-50 rounded-full transition-all active:scale-95">
               Сервисы
               <span className="material-symbols-outlined text-sm transition-transform group-hover:rotate-180">expand_more</span>
-            </Link>
+            </button>
             <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 w-64 translate-y-2 group-hover:translate-y-0">
               <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 overflow-hidden flex flex-col py-2">
                 {routes.services.map(item => (
@@ -96,18 +134,36 @@ export function Header({ user }: { user: AppwriteUser }) {
             <span className="material-symbols-outlined">notifications</span>
           </button>
           
-          {user ? (
+          {isLoadingUser ? (
+            <div className="h-11 w-11 animate-pulse rounded-full bg-surface-container-high md:w-[148px]" />
+          ) : user ? (
             <div className="relative group">
               <Link href="/cabinet" className="flex items-center gap-2 pl-2 pr-4 py-1.5 bg-surface-container-high rounded-full hover:bg-orange-100 transition-all active:scale-95">
-                <span className="material-symbols-outlined text-primary">account_circle</span>
-                <span className="text-sm font-bold font-display text-stone-800">Кабинет</span>
+                {user.avatarUrl ? (
+                  <img
+                    alt={user.name}
+                    className="h-8 w-8 rounded-full object-cover"
+                    src={user.avatarUrl}
+                  />
+                ) : (
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-black text-white">
+                    {userInitial}
+                  </span>
+                )}
+                <span className="max-w-[110px] truncate text-sm font-bold font-display text-stone-800">
+                  {user.name}
+                </span>
               </Link>
               <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 w-56 translate-y-2 group-hover:translate-y-0">
                 <div className="bg-white rounded-2xl shadow-2xl border border-stone-100 overflow-hidden flex flex-col py-2">
+                  <div className="px-6 py-3 border-b border-stone-100">
+                    <p className="text-sm font-bold text-stone-900 truncate">{user.name}</p>
+                    <p className="text-xs text-stone-500 truncate">{user.email}</p>
+                  </div>
                   <Link href="/cabinet" className="px-6 py-3 text-sm font-semibold text-stone-600 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm">person</span> Профиль
                   </Link>
-                  <Link href="/cabinet/pets" className="px-6 py-3 text-sm font-semibold text-stone-600 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2">
+                  <Link href="/cabinet#my-pets" className="px-6 py-3 text-sm font-semibold text-stone-600 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm">pets</span> Мои корги
                   </Link>
                   <div className="border-t border-stone-100 my-1"></div>

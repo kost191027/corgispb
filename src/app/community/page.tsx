@@ -71,7 +71,7 @@ export default function CommunityPage() {
           
           <div className="w-full md:w-7/12 aspect-square md:aspect-auto md:h-[600px] rounded-[2.5rem] overflow-hidden shadow-2xl relative bg-stone-100 group">
             <img 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.5s]" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
               alt="Стилизованная карта Санкт-Петербурга" 
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgshiGoicvNlyeF2mSILA8YcHF8PFTMahbt54PQJlCjOp4M3q4kbpfWfkdrHwM1FdBne0CT2zOR1ctjnFCkAop4ccc6kKvLPgPOERsBjyINuPOK1Ai7Sd34A8tcxmFesUxPKZmp7LsA2fLtBzxOGwwsRp0pWGVSPRHDJDKcvLPHnCpDnxCKbkWInwt4B6Hc19pFAQ26QMTJdjPSdjpqcOs8NW3kReot-ABnFvSGBmDHauQ-Pv3IJU9-5zWnalGAJpjn2ay8pxkNoA" 
               crossOrigin="anonymous" 
@@ -164,7 +164,7 @@ export default function CommunityPage() {
                 <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_month</span>
                 Расписание встреч
               </h3>
-              <Link href="/community/schedule" className="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
+              <Link href="/meetings" className="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
                 Весь календарь <span className="material-symbols-outlined text-lg">arrow_forward</span>
               </Link>
             </div>

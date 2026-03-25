@@ -1,4 +1,4 @@
-
+import Link from "next/link";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -238,10 +238,10 @@ export default function HowToChoosePage() {
           </div>
           <h2 className="text-4xl font-display font-extrabold text-on-primary-container mb-6">Готовы встретить друга?</h2>
           <p className="text-on-primary-container text-xl mb-10 opacity-80 max-w-2xl mx-auto">Мы отобрали лучшие питомники Санкт-Петербурга и области, где заботятся о породе так же сильно, как и мы.</p>
-          <a className="inline-flex items-center gap-3 bg-on-primary-container text-primary-container px-12 py-5 rounded-full font-display font-black text-lg hover:scale-105 transition-transform duration-300" href="/breeders">
+          <Link className="inline-flex items-center gap-3 bg-on-primary-container text-primary-container px-12 py-5 rounded-full font-display font-black text-lg hover:scale-105 transition-transform duration-300" href="/breeders">
             Посмотреть проверенных заводчиков
             <span className="material-symbols-outlined">arrow_forward</span>
-          </a>
+          </Link>
         </div>
       </section>
     </div>

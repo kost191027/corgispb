@@ -1,238 +1,299 @@
-"use client";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCabinetData } from "@/actions/auth";
+import { CabinetAddPetButton } from "@/components/cabinet/CabinetAddPetButton";
 
-import React, { useState } from "react";
-import AddPetModal from "@/components/shared/AddPetModal";
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
 
-export default function CabinetPage() {
-  const [isAddPetModalOpen, setIsAddPetModalOpen] = useState(false);
+function formatPetSubtitle(breed: string, gender: string | null, birthDate: string | null) {
+  const parts = [breed];
+
+  if (gender) {
+    parts.push(gender);
+  }
+
+  if (birthDate) {
+    parts.push(birthDate);
+  }
+
+  return parts.join(" • ");
+}
+
+export default async function CabinetPage() {
+  const { user, pets } = await getCabinetData();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const hasPets = pets.length > 0;
+  const userInitials = getInitials(user.name || user.email || "К");
 
   return (
-    <>
-      <main className="pt-24 pb-32 px-4 max-w-7xl mx-auto font-body">
-        
-        {/* Hero Section / Owner Profile */}
-        <section className="relative mb-12">
-          <div className="bg-surface-container-low rounded-xl p-8 md:p-12 overflow-hidden flex flex-col md:flex-row items-center gap-8 border-none">
-            <div className="relative group">
-              <div className="absolute inset-0 bg-primary-container blur-2xl opacity-20 rounded-full group-hover:opacity-30 transition-opacity"></div>
-              <img 
-                alt="Аватар пользователя" 
-                className="relative w-32 h-32 md:w-44 md:h-44 rounded-full object-cover border-4 border-white shadow-xl" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1v_Sw7D64y9XkFXYrXaHM05QND-t5nUCkqBoOgi9Z-8e5sDyTA96XxU0f0cAGJ9WG1SZolx9FEJo84qipcS5HBFuxKnrtcrbNkYUmZTXbTw_QQK-cbYWJjIps26NpR3uOh26gk3V7XyvXyICB9kJDVsr7WsAf_Ci0lkI9mCXH5Mjxs3w3Svfbdww7uz9a8LBjt6qJXwB3aHHI9mUZ0BB-2LBG-cBGUzGvK9DorEU_ZmNSgFjA2aloXIDJnpJ44d_JPfMlZzqHXcI" 
-                crossOrigin="anonymous" 
-              />
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-4xl md:text-5xl font-black font-headline text-on-surface mb-2 tracking-tight">Александр Волков</h1>
-              <div className="flex items-center justify-center md:justify-start gap-2 text-tertiary mb-6">
-                <span className="material-symbols-outlined text-base">location_on</span>
-                <span className="font-medium">Санкт-Петербург, Петроградский р-н</span>
-              </div>
-              <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                <button className="bg-gradient-to-r from-primary to-primary-container text-on-primary px-8 py-3 rounded-full font-bold shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95">
-                  Редактировать
-                </button>
-                <button className="bg-white text-primary border border-primary/20 px-8 py-3 rounded-full font-bold hover:bg-primary/5 transition-all">
-                  Поделиться профилем
-                </button>
-              </div>
-            </div>
+    <main className="mx-auto max-w-7xl px-4 pb-24 pt-24 font-body">
+      <section className="relative mb-10 overflow-hidden rounded-[2.5rem] bg-surface-container-low px-8 py-10 md:px-12 md:py-12">
+        <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-primary-container/15 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-44 w-44 rounded-full bg-tertiary/10 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col gap-8 md:flex-row md:items-center">
+          <div className="flex h-28 w-28 items-center justify-center rounded-full bg-white text-3xl font-black text-primary shadow-xl ring-4 ring-white/80 md:h-36 md:w-36">
+            {userInitials || "К"}
           </div>
-        </section>
 
-        {/* Bento Grid Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* Main Content Area (My Corgis & Stats) */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
-            
-            {/* My Corgis Header */}
-            <div className="flex justify-between items-end px-2">
-              <div>
-                <h2 className="text-2xl font-black font-headline text-on-surface">Мои корги</h2>
-                <p className="text-on-surface-variant">2 хвостика в семье</p>
-              </div>
-              <button 
-                onClick={() => setIsAddPetModalOpen(true)}
-                className="flex items-center gap-2 text-primary font-bold hover:text-primary-container transition-colors active:scale-95"
-              >
-                <span className="material-symbols-outlined text-xl">add_circle</span>
-                Добавить питомца
-              </button>
+          <div className="flex-1">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-primary shadow-sm">
+              <span className="material-symbols-outlined text-base">verified_user</span>
+              Личный кабинет
             </div>
-
-            {/* My Corgis List (Horizontal Scroll) */}
-            <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x">
-              {/* Pet Card 1 */}
-              <div className="min-w-[300px] md:min-w-[340px] snap-start bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow group border-none cursor-pointer">
-                <div className="relative h-48 mb-4 rounded-lg overflow-hidden">
-                  <img 
-                    alt="Корги Пряник" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1nwSy8WH7taF12JiFOJia_i-Sk4Ds4F6fSaJMQuNRSlMrw-9Mpf1C5vWDHZ13h5uhptDH87BX-wHzMwBNk74Ph3xRim-iA-dHTGE3by-dh7J-RTaMaWtBzCTobh_K0daHHsENLWF3GyAjjRWqRErIuhvm2-H9qK6Xw8vgzqqtUr3Y0RfvjKhKZIHy2RwtKxsE-m7HjWZzbdmzxWG22uN1UuzzcgHadcJNN8ExOyVqfYZvzmolbmT4HVQFKLpLv0wAi_jSWmKfoCo" 
-                    crossOrigin="anonymous" 
-                  />
-                  <div className="absolute top-3 right-3 bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">
-                    Чемпион
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold font-headline mb-1">Пряник</h3>
-                <p className="text-sm text-on-surface-variant mb-3">3 года • Пемброк</p>
-                <p className="text-sm text-tertiary font-medium bg-tertiary/5 p-3 rounded-lg italic">
-                  &quot;Обожает ловить капли дождя и бегать за чайками на набережной&quot;
-                </p>
-              </div>
-
-              {/* Pet Card 2 */}
-              <div className="min-w-[300px] md:min-w-[340px] snap-start bg-surface-container-lowest rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow group border-none cursor-pointer">
-                <div className="relative h-48 mb-4 rounded-lg overflow-hidden">
-                  <img 
-                    alt="Корги Булочка" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMQ2SKJ5ncbXxgbXMhvcLhksx0SsLx1rxrdLenLIDJHfWvrzPdOctY7qoc6zk36JGQEdapnLL4gajgftW24r079pxnbLW24DY74Hh85R74n48HD9u41rh9ff43TlRs9eGs9kGbi_TcBm6A3_Nx9c2KPBkM6KK_-kdQ8Roly8kbIgvCjdy1L9ypAVi-i3oTs_Egc9W3RUoiza4BsLr6RsykimAFLKBKax7F3PboW5v1OSPWm-7Nhkl_efVyGnuOZh4YA9ODKHcAi8g" 
-                    crossOrigin="anonymous" 
-                  />
-                  <div className="absolute top-3 right-3 bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">
-                    Любитель бегать
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold font-headline mb-1">Булочка</h3>
-                <p className="text-sm text-on-surface-variant mb-3">1.5 года • Кардиган</p>
-                <p className="text-sm text-tertiary font-medium bg-tertiary/5 p-3 rounded-lg italic">
-                  &quot;Самый быстрый корги в Таврическом саду. Не ест, если не почесать пузо&quot;
-                </p>
-              </div>
-            </div>
-
-            {/* Stats and Achievement Section */}
-            <div className="bg-primary text-on-primary rounded-xl p-8 relative overflow-hidden mt-2 border-none">
-              <div className="absolute -right-8 -bottom-8 opacity-10">
-                <span className="material-symbols-outlined text-[120px]" style={{ fontVariationSettings: "'FILL' 1" }}>pets</span>
-              </div>
-              <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-4">
-                  <div className="w-16 h-16 bg-secondary-container text-on-secondary-container rounded-full flex items-center justify-center shadow-lg shrink-0">
-                    <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase font-black opacity-80 tracking-widest leading-loose">Уровень</p>
-                    <h4 className="text-xl font-bold font-headline leading-tight">Золотая лапка</h4>
-                  </div>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-4xl font-black font-headline">24</span>
-                  <span className="text-sm opacity-80 pt-1">Посещено встреч</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-4xl font-black font-headline">152</span>
-                  <span className="text-sm opacity-80 pt-1">Постов на форуме</span>
-                </div>
-              </div>
+            <h1 className="mb-3 text-4xl font-black tracking-tight text-on-surface md:text-5xl">
+              {user.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-on-surface-variant">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 shadow-sm">
+                <span className="material-symbols-outlined text-base text-primary">mail</span>
+                {user.email}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 shadow-sm">
+                <span className="material-symbols-outlined text-base text-primary">location_on</span>
+                {user.city || "Санкт-Петербург"}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 capitalize shadow-sm">
+                <span className="material-symbols-outlined text-base text-primary">pets</span>
+                {user.role || "owner"}
+              </span>
             </div>
           </div>
 
-          {/* Sidebar Content */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            
-            {/* Calendar Block */}
-            <div className="bg-surface-container-high rounded-xl p-6 border-none">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-black font-headline">Календарь ухода</h2>
-                <span className="material-symbols-outlined text-primary">event</span>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="bg-white p-4 rounded-lg flex gap-4 items-center">
-                  <div className="bg-orange-100 text-orange-800 px-3 py-2 rounded flex flex-col items-center min-w-[50px]">
-                    <span className="text-[10px] font-bold">ЗАВТРА</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm">Прогулка в саду</h4>
-                    <p className="text-xs text-on-surface-variant">Таврический сад, 18:00</p>
-                  </div>
-                </div>
-                
-                <div className="bg-white p-4 rounded-lg flex gap-4 items-center opacity-80 cursor-pointer hover:opacity-100 transition-opacity">
-                  <div className="bg-stone-100 text-stone-600 px-3 py-2 rounded flex flex-col items-center min-w-[50px]">
-                    <span className="text-[10px] font-bold uppercase">12 Мар</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm">Прививка</h4>
-                    <p className="text-xs text-on-surface-variant">Ветклиника «Лапа»</p>
-                  </div>
-                </div>
-                
-                <div className="bg-white p-4 rounded-lg flex gap-4 items-center opacity-80 cursor-pointer hover:opacity-100 transition-opacity">
-                  <div className="bg-stone-100 text-stone-600 px-3 py-2 rounded flex flex-col items-center min-w-[50px]">
-                    <span className="text-[10px] font-bold uppercase">20 Мар</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm">Груминг</h4>
-                    <p className="text-xs text-on-surface-variant">Студия «Пушистик»</p>
-                  </div>
-                </div>
-              </div>
-              
-              <button className="w-full mt-6 py-3 border-2 border-primary/20 text-primary font-bold rounded-lg hover:bg-primary/5 transition-all text-sm active:scale-95">
-                Открыть весь график
-              </button>
-            </div>
-
-            {/* Communities & Discussion */}
-            <div className="bg-surface-container-low rounded-xl p-6 border-none">
-              <h2 className="text-xl font-black font-headline mb-4">Сообщества</h2>
-              <div className="space-y-3">
-                <a className="block p-3 rounded-lg hover:bg-white transition-colors group" href="#">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-tertiary text-white rounded-full flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-sm">groups</span>
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm group-hover:text-primary transition-colors">Петроградские корги</p>
-                      <p className="text-xs text-on-surface-variant mt-0.5">Районная группа • 42 участника</p>
-                    </div>
-                  </div>
-                </a>
-                <a className="block p-3 rounded-lg hover:bg-white transition-colors group" href="#">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-secondary-container text-on-secondary-container rounded-full flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-sm">forum</span>
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm group-hover:text-primary transition-colors">Лучший корм для щенков</p>
-                      <p className="text-xs text-on-surface-variant mt-0.5">Активно сейчас: 12 ответов</p>
-                    </div>
-                  </div>
-                </a>
-              </div>
-            </div>
-
-            {/* Notifications Settings */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-outline-variant/10">
-              <h2 className="text-xl font-black font-headline mb-4">Уведомления</h2>
-              <div className="space-y-4">
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-sm font-medium">События и встречи</span>
-                  <div className="relative inline-flex items-center cursor-pointer">
-                    <input className="sr-only peer" type="checkbox" defaultChecked />
-                    <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </div>
-                </label>
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-sm font-medium">Здоровье и календарь</span>
-                  <div className="relative inline-flex items-center cursor-pointer">
-                    <input className="sr-only peer" type="checkbox" defaultChecked />
-                    <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
+          <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
+            <CabinetAddPetButton className="justify-center bg-gradient-to-r from-primary to-primary-container px-7 py-4 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5" />
+            <Link
+              href="/pets"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-black uppercase tracking-[0.18em] text-primary shadow-sm transition-colors hover:bg-primary/5"
+            >
+              <span className="material-symbols-outlined text-base">photo_library</span>
+              Галерея клуба
+            </Link>
           </div>
         </div>
-      </main>
+      </section>
 
-      <AddPetModal isOpen={isAddPetModalOpen} onClose={() => setIsAddPetModalOpen(false)} />
-    </>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <section className="lg:col-span-8">
+          <div
+            id="my-pets"
+            className="mb-6 flex flex-col gap-4 rounded-[2rem] bg-white/80 p-6 shadow-sm ring-1 ring-black/5 backdrop-blur sm:flex-row sm:items-end sm:justify-between scroll-mt-28"
+          >
+            <div>
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.22em] text-primary">
+                Мои корги
+              </p>
+              <h2 className="text-3xl font-black tracking-tight text-on-surface">
+                {hasPets ? `У вас ${pets.length} ${pets.length === 1 ? "хвостик" : "хвостика"}` : "Пока здесь пусто"}
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm text-on-surface-variant">
+                {hasPets
+                  ? "Карточки подтягиваются из Appwrite и готовы к следующему этапу логики."
+                  : "После добавления первого питомца здесь появятся карточки, быстрые действия и персональный календарь ухода."}
+              </p>
+            </div>
+            <CabinetAddPetButton className="justify-center bg-surface-container-high px-6 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary/10" />
+          </div>
+
+          {hasPets ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {pets.map((pet) => (
+                <article
+                  key={pet.id}
+                  className="overflow-hidden rounded-[2rem] bg-surface-container-lowest shadow-sm ring-1 ring-black/5 transition-transform hover:-translate-y-1 hover:shadow-lg"
+                >
+                  <div className="relative h-64 overflow-hidden bg-surface-container-high">
+                    {pet.photoUrl ? (
+                      <img
+                        alt={pet.name}
+                        className="h-full w-full object-cover"
+                        src={pet.photoUrl}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top_right,rgba(144,77,0,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(42,103,110,0.14),transparent_38%)]">
+                        <span className="material-symbols-outlined text-[72px] text-primary/70">pets</span>
+                      </div>
+                    )}
+                    <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-primary shadow-sm">
+                      {pet.isPublic ? "Публичный профиль" : "Приватный профиль"}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 p-6">
+                    <div>
+                      <h3 className="text-2xl font-black tracking-tight text-on-surface">
+                        {pet.name}
+                      </h3>
+                      <p className="mt-2 text-sm text-on-surface-variant">
+                        {formatPetSubtitle(pet.breed, pet.gender, pet.birthDate)}
+                      </p>
+                    </div>
+
+                    <p className="min-h-12 text-sm leading-relaxed text-on-surface-variant">
+                      {pet.description || "Описание пока не заполнено. На следующем шаге подключим редактирование профиля и расширенные данные питомца."}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-[2.5rem] bg-surface-container-low p-8 shadow-sm ring-1 ring-black/5 md:p-10">
+              <div className="grid gap-8 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+                <div>
+                  <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-primary-container text-on-primary-container shadow-sm">
+                    <span className="material-symbols-outlined text-3xl">pets</span>
+                  </div>
+                  <h3 className="mb-4 text-3xl font-black tracking-tight text-on-surface">
+                    Добавьте первого хвостика в свой кабинет
+                  </h3>
+                  <p className="mb-6 max-w-xl text-base leading-relaxed text-on-surface-variant">
+                    Мы сохраним базовую карточку питомца, а затем на следующих этапах подключим редактирование, реальные списки, фильтрацию и публикацию в галерее сообщества.
+                  </p>
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <CabinetAddPetButton className="justify-center bg-gradient-to-r from-primary to-primary-container px-7 py-4 text-sm font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-primary/20" />
+                    <Link
+                      href="/about/how-to-choose"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-black uppercase tracking-[0.18em] text-tertiary shadow-sm transition-colors hover:bg-tertiary/5"
+                    >
+                      <span className="material-symbols-outlined text-base">menu_book</span>
+                      Подготовиться
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-black/5">
+                  <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-primary">
+                    Что появится после заполнения
+                  </p>
+                  <div className="space-y-4">
+                    {[
+                      "Карточка корги с породой, полом, фото и описанием",
+                      "Быстрый доступ к будущему календарю ухода и встреч",
+                      "Основа для публикации в галерее и сервисах сообщества",
+                    ].map((item) => (
+                      <div key={item} className="flex items-start gap-3 rounded-2xl bg-surface-container-low px-4 py-4">
+                        <span className="material-symbols-outlined mt-0.5 text-primary">check_circle</span>
+                        <p className="text-sm font-medium leading-relaxed text-on-surface">
+                          {item}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <aside className="space-y-6 lg:col-span-4">
+          <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-black/5">
+            <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-primary">
+              Профиль владельца
+            </p>
+            <div className="space-y-4">
+              <div className="rounded-2xl bg-surface-container-low px-4 py-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-on-surface-variant">
+                  Имя
+                </p>
+                <p className="mt-2 text-lg font-bold text-on-surface">{user.name}</p>
+              </div>
+              <div className="rounded-2xl bg-surface-container-low px-4 py-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-on-surface-variant">
+                  Email
+                </p>
+                <p className="mt-2 break-all text-sm font-medium text-on-surface">{user.email}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-surface-container-low px-4 py-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-on-surface-variant">
+                    Город
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-on-surface">
+                    {user.city || "Санкт-Петербург"}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-surface-container-low px-4 py-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-on-surface-variant">
+                    Роль
+                  </p>
+                  <p className="mt-2 text-sm font-bold capitalize text-on-surface">
+                    {user.role || "owner"}
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-surface-container-low px-4 py-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-on-surface-variant">
+                  О себе
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
+                  {user.bio || "Профиль пока не заполнен. На следующем этапе можно будет редактировать анкету владельца и дополнительные поля."}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-[2rem] bg-tertiary p-6 text-white shadow-lg shadow-tertiary/20">
+            <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-white/70">
+              Следующие шаги
+            </p>
+            <div className="space-y-4">
+              {[
+                "Добавьте первого корги в карточку кабинета",
+                "Проверьте раздел SOS и готовность экстренной формы",
+                "Изучите будущие встречи и карту прогулок",
+              ].map((item, index) => (
+                <div key={item} className="flex gap-3 rounded-2xl bg-white/10 px-4 py-4 backdrop-blur-sm">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-xs font-black">
+                    {index + 1}
+                  </span>
+                  <p className="text-sm font-medium leading-relaxed text-white/90">{item}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] bg-surface-container-low p-6 shadow-sm ring-1 ring-black/5">
+            <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-primary">
+              Быстрые переходы
+            </p>
+            <div className="space-y-3">
+              <Link
+                href="/community/forum"
+                className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-sm font-bold text-on-surface transition-colors hover:bg-primary/5"
+              >
+                Форум сообщества
+                <span className="material-symbols-outlined text-primary">arrow_forward</span>
+              </Link>
+              <Link
+                href="/meetings"
+                className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-sm font-bold text-on-surface transition-colors hover:bg-primary/5"
+              >
+                Календарь встреч
+                <span className="material-symbols-outlined text-primary">arrow_forward</span>
+              </Link>
+              <Link
+                href="/sos"
+                className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-sm font-bold text-on-surface transition-colors hover:bg-primary/5"
+              >
+                SOS и потеряшки
+                <span className="material-symbols-outlined text-primary">arrow_forward</span>
+              </Link>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
   );
 }

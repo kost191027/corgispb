@@ -1,4 +1,15 @@
-import { YandexMap } from "@/components/map/YandexMap";
+import dynamic from "next/dynamic";
+import { MapLoadingPlaceholder } from "@/components/map/MapLoadingPlaceholder";
+
+const YandexMap = dynamic(
+  () => import("@/components/map/YandexMap").then((mod) => mod.YandexMap),
+  {
+    ssr: false,
+    loading: () => (
+      <MapLoadingPlaceholder height="600px" label="Открываем полную карту прогулок..." />
+    ),
+  },
+);
 
 export default function MapPage() {
   return (

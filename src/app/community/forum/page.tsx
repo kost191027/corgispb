@@ -225,7 +225,7 @@ export default function ForumPage() {
               Важные новости
             </h3>
             <div className="space-y-4">
-              <Link href="/news/1" className="block group">
+              <Link href="/community/forum/1" className="block group">
                 <div className="text-error font-bold text-xs mb-1 flex items-center gap-1 bg-error/10 w-fit px-2 py-0.5 rounded-full uppercase tracking-wider">
                   <span className="material-symbols-outlined text-[10px]">warning</span> Срочно
                 </div>
@@ -233,7 +233,7 @@ export default function ForumPage() {
                 <p className="text-[11px] text-on-surface-variant mt-1.5">Первые случаи в Выборгском районе. Проверьте защиту...</p>
               </Link>
               <hr className="border-outline-variant/20" />
-              <Link href="/news/2" className="block group">
+              <Link href="/community/forum/2" className="block group">
                 <div className="text-tertiary font-bold text-xs mb-1 flex items-center gap-1 bg-tertiary/10 w-fit px-2 py-0.5 rounded-full uppercase tracking-wider">
                   <span className="material-symbols-outlined text-[10px]">location_on</span> Локация
                 </div>

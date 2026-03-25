@@ -1,5 +1,4 @@
 import { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Заводчики — Корги СПб",
@@ -83,7 +82,7 @@ export default function BreedersPage() {
           <div className="relative mt-8 md:mt-0">
             <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-700 bg-stone-100 group">
               <img 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.5s]" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
                 alt="Happy Corgi dog looking at the camera in a park" 
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNfhR0z0CvzGs60_Ln1udzeymPR672ioNEvLffdR1BiI9xnuJZXRPkmGx-QA8wo04dM2QZz0Oc-Q6eUU8W-pC-yomHwgjrn_cWuNMDGydZhGugWevRnOQHisyccs7QvSl6QXfqKUTWiW5KJvxdIWUjbL11vONBY6hQTunv2fuQ5QJh4GulnsXIWcx7KynMqS8zvXkCL1qZiy351RHHLvkGYFI4IN7EIrekRUpyIa-WkcsGpK8hiUdCicy359Ht0vpA3pLx6Oi7peo" 
                 crossOrigin="anonymous" 

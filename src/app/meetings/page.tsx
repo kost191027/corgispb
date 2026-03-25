@@ -1,8 +1,16 @@
-"use client";
-
-import React from "react";
-import { YandexMap } from "@/components/map/YandexMap";
+import dynamic from "next/dynamic";
+import { MapLoadingPlaceholder } from "@/components/map/MapLoadingPlaceholder";
 import type { MapMarker } from "@/components/map/YandexMap";
+
+const YandexMap = dynamic(
+  () => import("@/components/map/YandexMap").then((mod) => mod.YandexMap),
+  {
+    ssr: false,
+    loading: () => (
+      <MapLoadingPlaceholder label="Подгружаем карту ближайших встреч..." />
+    ),
+  },
+);
 
 const MEETING_MARKERS: MapMarker[] = [
   { id: "1", coordinates: [30.2146, 59.9722], title: "Забег в Парке 300-летия", subtitle: "15 июня, 12:00", color: "orange" },

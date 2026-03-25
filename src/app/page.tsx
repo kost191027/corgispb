@@ -1,9 +1,20 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { YandexMap } from "@/components/map/YandexMap";
+import { MapLoadingPlaceholder } from "@/components/map/MapLoadingPlaceholder";
 import type { MapMarker } from "@/components/map/YandexMap";
 import { useRef } from "react";
+
+const YandexMap = dynamic(
+  () => import("@/components/map/YandexMap").then((mod) => mod.YandexMap),
+  {
+    ssr: false,
+    loading: () => (
+      <MapLoadingPlaceholder label="Подгружаем карту прогулок..." />
+    ),
+  },
+);
 
 const MAIN_MAP_MARKERS: MapMarker[] = [
   { id: "1", coordinates: [30.2596, 59.9714], title: "Парк 300-летия", subtitle: "Большая территория у залива", color: "green" },

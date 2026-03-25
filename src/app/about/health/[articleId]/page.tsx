@@ -1,15 +1,13 @@
-"use client";
-
-import React from "react";
+import Link from "next/link";
 
 export default function ExpertArticlePage() {
   return (
     <main className="pt-24 pb-20">
       {/* Breadcrumbs */}
       <nav className="max-w-7xl mx-auto px-8 mb-8 flex items-center gap-2 text-sm text-on-surface-variant font-body">
-        <a className="hover:text-primary transition-colors" href="/">Главная</a>
+        <Link className="hover:text-primary transition-colors" href="/">Главная</Link>
         <span className="material-symbols-outlined text-xs">chevron_right</span>
-        <a className="hover:text-primary transition-colors" href="/about/health">Здоровье и Питание</a>
+        <Link className="hover:text-primary transition-colors" href="/about/health">Здоровье и Питание</Link>
         <span className="material-symbols-outlined text-xs">chevron_right</span>
         <span className="text-on-surface font-medium">Рацион в Балтийском климате</span>
       </nav>

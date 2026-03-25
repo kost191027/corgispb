@@ -11,33 +11,32 @@ import "@fontsource/be-vietnam-pro/700.css";
 import "./globals.css";
 import { Header } from "@/components/shared/Header";
 import { Footer } from "@/components/shared/Footer";
-import { getCurrentUser } from "@/actions/auth";
-import { QueryProvider } from "@/components/providers/QueryProvider";
+import { Suspense } from "react";
+import { HeaderSession } from "@/components/shared/HeaderSession";
 
 export const metadata: Metadata = {
   title: "Корги СПб — Главное сообщество любителей корги",
   description: "Встречи, советы ветеринаров, карта прогулок и проверенные заводчики корги в Петербурге.",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
   modal,
 }: Readonly<{
   children: React.ReactNode;
   modal: React.ReactNode;
 }>) {
-  const user = await getCurrentUser();
   return (
     <html lang="ru">
       <body className="antialiased bg-surface text-on-surface min-h-screen flex flex-col relative">
-        <QueryProvider>
-          <Header user={user} />
-          <main className="flex-1 flex flex-col relative z-0">
-            {children}
-          </main>
-          {modal}
-          <Footer />
-        </QueryProvider>
+        <Suspense fallback={<Header user={null} isLoadingUser />}>
+          <HeaderSession />
+        </Suspense>
+        <main className="flex-1 flex flex-col relative z-0">
+          {children}
+        </main>
+        {modal}
+        <Footer />
       </body>
     </html>
   );

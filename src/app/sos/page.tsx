@@ -1,9 +1,31 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import React, { useState } from "react";
-import SosModal from "@/components/shared/SosModal";
-import { YandexMap } from "@/components/map/YandexMap";
+import { MapLoadingPlaceholder } from "@/components/map/MapLoadingPlaceholder";
 import type { MapMarker } from "@/components/map/YandexMap";
+
+const SosModal = dynamic(
+  () => import("@/components/shared/SosModal"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm">
+        <div className="h-14 w-14 rounded-full border-4 border-white/30 border-t-white animate-spin" />
+      </div>
+    ),
+  },
+);
+
+const YandexMap = dynamic(
+  () => import("@/components/map/YandexMap").then((mod) => mod.YandexMap),
+  {
+    ssr: false,
+    loading: () => (
+      <MapLoadingPlaceholder label="Собираем карту SOS-объявлений..." />
+    ),
+  },
+);
 
 const LOST_NOTICES = [
   {
@@ -97,7 +119,7 @@ export default function LostAndFoundPage() {
               <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-700 bg-surface-container-high relative border border-outline-variant/10 group">
                 <img 
                   alt="Sad looking corgi" 
-                  className="w-full h-full object-cover grayscale-[30%] group-hover:scale-105 transition-transform duration-[2s]" 
+                  className="w-full h-full object-cover grayscale-[30%] group-hover:scale-105 transition-transform duration-1000" 
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaLMAnG2K3F4ws9T7QhsMDFP5OPJcOiubik5Y4YytG6Sm2nY4TmDBsN6x0sV5dYuVaEOIfAOOBwfnX7sQXX_1JZ_ZtuPjollmylBCGZc-3ntDErz7FI1q4b_hEfccLx8oaPaIqrCkD0Ucm_BKR9aGVH8Asv7yIzAxU44Kcq0dSCdIj1JP3EIUJSYVlCzgPyWTQtRFriMikMDmkBW71BiN74sVO-NH06PWbuhqVNbR1CwfAWPuUW7bzdHQ6pAyYlCeRdUFvmOUbFAk" 
                   crossOrigin="anonymous" 
                 />

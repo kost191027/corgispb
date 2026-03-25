@@ -1,15 +1,13 @@
-"use client";
-
-import React from "react";
+import Link from "next/link";
 
 export default function ForumArticlePage() {
   return (
     <main className="pt-24 pb-12 px-6 max-w-7xl mx-auto">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 mb-8 text-sm font-label text-on-surface-variant/70">
-        <a className="hover:text-primary transition-colors" href="/">Главная</a>
+        <Link className="hover:text-primary transition-colors" href="/">Главная</Link>
         <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-        <a className="hover:text-primary transition-colors" href="/community">Форум</a>
+        <Link className="hover:text-primary transition-colors" href="/community/forum">Форум</Link>
         <span className="material-symbols-outlined text-[16px]">chevron_right</span>
         <span className="text-on-surface-variant font-semibold">Питание</span>
       </nav>
