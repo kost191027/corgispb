@@ -3,9 +3,8 @@
 import { ID, Query } from "node-appwrite";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/actions/auth";
 import { serializeCalendarDescription } from "@/lib/calendar";
-import { createAdminClient } from "@/lib/server/appwrite";
+import { createSessionClient } from "@/lib/server/appwrite";
 
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || "corgi_db";
 const CALENDAR_COLLECTION = process.env.NEXT_PUBLIC_APPWRITE_CALENDAR_COLLECTION || "calendar_events_corgi";
@@ -26,12 +25,6 @@ function normalizeDate(value: string) {
 }
 
 export async function createCalendarEvent(formData: FormData): Promise<CalendarActionResult> {
-  const currentUser = await getCurrentUser();
-
-  if (!currentUser) {
-    redirect("/login");
-  }
-
   const title = String(formData.get("title") || "").trim();
   const eventDate = normalizeDate(String(formData.get("eventDate") || ""));
   const location = String(formData.get("location") || "").trim();
@@ -47,7 +40,8 @@ export async function createCalendarEvent(formData: FormData): Promise<CalendarA
   }
 
   try {
-    const { databases } = await createAdminClient();
+    const { account, databases } = await createSessionClient();
+    const currentUser = await account.get();
     await databases.createDocument(DB_ID, CALENDAR_COLLECTION, ID.unique(), {
       user_id: currentUser.$id,
       title,
@@ -74,15 +68,6 @@ export async function createCalendarEvent(formData: FormData): Promise<CalendarA
 }
 
 export async function saveSiteEventToCalendar(formData: FormData): Promise<CalendarActionResult> {
-  const currentUser = await getCurrentUser();
-
-  if (!currentUser) {
-    return {
-      ok: false,
-      message: "Войдите в аккаунт, чтобы сохранить событие.",
-    };
-  }
-
   const sourceId = String(formData.get("sourceId") || "").trim();
   const title = String(formData.get("title") || "").trim();
   const eventDate = normalizeDate(String(formData.get("eventDate") || ""));
@@ -99,7 +84,8 @@ export async function saveSiteEventToCalendar(formData: FormData): Promise<Calen
   }
 
   try {
-    const { databases } = await createAdminClient();
+    const { account, databases } = await createSessionClient();
+    const currentUser = await account.get();
 
     if (sourceId) {
       const existing = await databases.listDocuments(DB_ID, CALENDAR_COLLECTION, [
@@ -135,6 +121,14 @@ export async function saveSiteEventToCalendar(formData: FormData): Promise<Calen
     };
   } catch (error) {
     console.error("Save site event failed", error);
+
+    if (error instanceof Error && error.message.toLowerCase().includes("session")) {
+      return {
+        ok: false,
+        message: "Войдите в аккаунт, чтобы сохранить событие.",
+      };
+    }
+
     return {
       ok: false,
       message: "Не удалось добавить событие. Проверьте коллекцию calendar_events_corgi.",
@@ -143,12 +137,6 @@ export async function saveSiteEventToCalendar(formData: FormData): Promise<Calen
 }
 
 export async function deleteCalendarEvent(formData: FormData): Promise<CalendarActionResult> {
-  const currentUser = await getCurrentUser();
-
-  if (!currentUser) {
-    redirect("/login");
-  }
-
   const eventId = String(formData.get("eventId") || "").trim();
 
   if (!eventId) {
@@ -159,7 +147,8 @@ export async function deleteCalendarEvent(formData: FormData): Promise<CalendarA
   }
 
   try {
-    const { databases } = await createAdminClient();
+    const { account, databases } = await createSessionClient();
+    const currentUser = await account.get();
     const existingEvent = await databases.getDocument(DB_ID, CALENDAR_COLLECTION, eventId);
 
     if (String(existingEvent.user_id) !== currentUser.$id) {
@@ -178,6 +167,11 @@ export async function deleteCalendarEvent(formData: FormData): Promise<CalendarA
     };
   } catch (error) {
     console.error("Calendar event delete failed", error);
+
+    if (error instanceof Error && error.message.toLowerCase().includes("session")) {
+      redirect("/login");
+    }
+
     return {
       ok: false,
       message: "Не удалось удалить событие из календаря.",

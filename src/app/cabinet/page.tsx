@@ -16,5 +16,19 @@ export default async function CabinetPage() {
     getCalendarEventsByUser(profile.$id),
   ]);
 
-  return <CabinetPageClient calendarEvents={calendarEvents} pets={pets} user={{ ...profile, id: profile.$id }} />;
+  return (
+    <CabinetPageClient
+      calendarEvents={calendarEvents}
+      pets={pets}
+      user={{
+        id: profile.$id,
+        name: profile.name,
+        email: profile.email,
+        city: profile.city || undefined,
+        district: profile.district,
+        avatarUrl: profile.avatarUrl || undefined,
+        bio: profile.bio || undefined,
+      }}
+    />
+  );
 }

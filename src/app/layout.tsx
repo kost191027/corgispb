@@ -8,12 +8,12 @@ import "@fontsource/be-vietnam-pro/400.css";
 import "@fontsource/be-vietnam-pro/500.css";
 import "@fontsource/be-vietnam-pro/600.css";
 import "@fontsource/be-vietnam-pro/700.css";
+import { Suspense } from "react";
 import "./globals.css";
 import { Header } from "@/components/shared/Header";
+import { HeaderSession } from "@/components/shared/HeaderSession";
 import { Footer } from "@/components/shared/Footer";
-import { getCurrentUserProfile } from "@/actions/auth";
 import { QueryProvider } from "@/components/providers/QueryProvider";
-import { getReminderNotificationsByUser } from "@/lib/server/calendar";
 
 export const metadata: Metadata = {
   title: "Корги СПб — Главное сообщество любителей корги",
@@ -27,14 +27,13 @@ export default async function RootLayout({
   children: React.ReactNode;
   modal: React.ReactNode;
 }>) {
-  const user = await getCurrentUserProfile();
-  const notifications = user ? await getReminderNotificationsByUser(user.$id) : [];
-
   return (
     <html lang="ru">
       <body className="antialiased bg-surface text-on-surface min-h-screen flex flex-col relative">
         <QueryProvider>
-          <Header notifications={notifications} user={user} />
+          <Suspense fallback={<Header isLoadingUser user={null} />}>
+            <HeaderSession />
+          </Suspense>
           <main className="flex-1 flex flex-col relative z-0">
             {children}
           </main>

@@ -46,6 +46,7 @@ export async function updateCurrentUserProfile(formData: FormData): Promise<Upda
 
     revalidatePath("/");
     revalidatePath("/cabinet");
+    revalidatePath("/owners");
     revalidatePath(`/owners/${currentUser.$id}`);
 
     return {
