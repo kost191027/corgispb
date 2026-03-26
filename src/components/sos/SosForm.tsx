@@ -9,13 +9,23 @@ export function SosForm() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
     const formData = new FormData(e.currentTarget);
-    await reportSosAction(formData);
-    setSuccess(true);
+    formData.set("breed", "Пемброк");
+    formData.set("reportType", "lost");
+    const result = await reportSosAction(formData);
+
+    if (result.success) {
+      setSuccess(true);
+    } else {
+      setError(result.message);
+    }
+
     setIsSubmitting(false);
   }
 
@@ -47,11 +57,11 @@ export function SosForm() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1 text-on-surface/80">Как зовут собаку?</label>
-                <Input name="name" required placeholder="Например: Арчи" />
+                <Input name="petName" required placeholder="Например: Арчи" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1 text-on-surface/80">Окрас и особые приметы</label>
-                <Input name="color" required placeholder="Триколор, красный ошейник..." />
+                <Input name="description" required placeholder="Триколор, красный ошейник..." />
               </div>
             </div>
             <div className="mt-8">
@@ -79,6 +89,9 @@ export function SosForm() {
                 {isSubmitting ? "Отправка..." : "Отправить SOS"}
               </Button>
             </div>
+            {error ? (
+              <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
+            ) : null}
           </div>
         )}
       </form>
