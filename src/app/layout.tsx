@@ -11,32 +11,36 @@ import "@fontsource/be-vietnam-pro/700.css";
 import "./globals.css";
 import { Header } from "@/components/shared/Header";
 import { Footer } from "@/components/shared/Footer";
-import { Suspense } from "react";
-import { HeaderSession } from "@/components/shared/HeaderSession";
+import { getCurrentUserProfile } from "@/actions/auth";
+import { QueryProvider } from "@/components/providers/QueryProvider";
+import { getReminderNotificationsByUser } from "@/lib/server/calendar";
 
 export const metadata: Metadata = {
   title: "Корги СПб — Главное сообщество любителей корги",
   description: "Встречи, советы ветеринаров, карта прогулок и проверенные заводчики корги в Петербурге.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   modal,
 }: Readonly<{
   children: React.ReactNode;
   modal: React.ReactNode;
 }>) {
+  const user = await getCurrentUserProfile();
+  const notifications = user ? await getReminderNotificationsByUser(user.$id) : [];
+
   return (
     <html lang="ru">
       <body className="antialiased bg-surface text-on-surface min-h-screen flex flex-col relative">
-        <Suspense fallback={<Header user={null} isLoadingUser />}>
-          <HeaderSession />
-        </Suspense>
-        <main className="flex-1 flex flex-col relative z-0">
-          {children}
-        </main>
-        {modal}
-        <Footer />
+        <QueryProvider>
+          <Header notifications={notifications} user={user} />
+          <main className="flex-1 flex flex-col relative z-0">
+            {children}
+          </main>
+          {modal}
+          <Footer />
+        </QueryProvider>
       </body>
     </html>
   );

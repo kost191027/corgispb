@@ -2,9 +2,9 @@
 
 import { ID, Query } from "node-appwrite";
 import { cookies } from "next/headers";
-import { createAdminClient, createSessionClient } from "@/lib/server/appwrite";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { createAdminClient, createSessionClient } from "@/lib/server/appwrite";
 
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || "corgi_db";
 const USERS_COLLECTION = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || "users_corgi";
@@ -18,6 +18,7 @@ export type CurrentUser = {
 
 export type CurrentUserProfile = CurrentUser & {
   city: string | null;
+  district?: string;
   phone: string | null;
   bio: string | null;
   role: string | null;
@@ -52,35 +53,29 @@ export async function signUpWithEmail(formData: FormData): Promise<void> {
 
   try {
     const { account } = await createAdminClient();
-    
-    // 1. Create auth account
     const newUser = await account.create(ID.unique(), email, password, name);
-
-    // 2. Create a session for the new user
     const session = await account.createEmailPasswordSession(email, password);
 
-    // 3. Save user profile to database collection
     try {
       const adminClient = await createAdminClient();
       const databases = adminClient.databases;
       await databases.createDocument(DB_ID, USERS_COLLECTION, newUser.$id, {
-        name: name,
-        email: email,
+        name,
+        email,
         city: "Санкт-Петербург",
+        district: "",
         role: "owner",
       });
     } catch (dbError) {
       console.error("Failed to create user profile in DB:", dbError);
-      // Don't block registration if DB write fails — auth is already done
     }
 
-    // 4. Set secure HttpOnly cookie
     cookies().set("pet-portal-session", session.secret, {
       path: "/",
       httpOnly: true,
       sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Ошибка регистрации";
@@ -107,7 +102,7 @@ export async function signInWithEmail(formData: FormData): Promise<void> {
       httpOnly: true,
       sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Ошибка авторизации";
@@ -130,7 +125,6 @@ export async function signOut() {
   redirect("/");
 }
 
-// Returns a plain serializable object
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   try {
     const { account } = await createSessionClient();
@@ -157,6 +151,7 @@ export const getCurrentUserProfile = cache(async (): Promise<CurrentUserProfile 
         name: String(profile.name || user.name),
         email: String(profile.email || user.email),
         city: profile.city ? String(profile.city) : "Санкт-Петербург",
+        district: profile.district ? String(profile.district) : undefined,
         phone: profile.phone ? String(profile.phone) : null,
         bio: profile.bio ? String(profile.bio) : null,
         role: profile.role ? String(profile.role) : "owner",
@@ -169,6 +164,7 @@ export const getCurrentUserProfile = cache(async (): Promise<CurrentUserProfile 
         name: user.name,
         email: user.email,
         city: "Санкт-Петербург",
+        district: undefined,
         phone: null,
         bio: null,
         role: "owner",
@@ -227,6 +223,7 @@ export const getCabinetData = cache(async (): Promise<CabinetData> => {
             name: String(profileResult.value.name || user.name),
             email: String(profileResult.value.email || user.email),
             city: profileResult.value.city ? String(profileResult.value.city) : "Санкт-Петербург",
+            district: profileResult.value.district ? String(profileResult.value.district) : undefined,
             phone: profileResult.value.phone ? String(profileResult.value.phone) : null,
             bio: profileResult.value.bio ? String(profileResult.value.bio) : null,
             role: profileResult.value.role ? String(profileResult.value.role) : "owner",
@@ -238,6 +235,7 @@ export const getCabinetData = cache(async (): Promise<CabinetData> => {
             name: user.name,
             email: user.email,
             city: "Санкт-Петербург",
+            district: undefined,
             phone: null,
             bio: null,
             role: "owner",
@@ -262,5 +260,30 @@ export const getCabinetData = cache(async (): Promise<CabinetData> => {
     return { user: profile, pets };
   } catch {
     return { user: null, pets: [] };
+  }
+});
+
+export const getPublicUserProfileById = cache(async (userId: string): Promise<{
+  $id: string;
+  name: string;
+  city?: string;
+  district?: string;
+  avatarUrl?: string;
+  bio?: string;
+} | null> => {
+  try {
+    const { databases } = await createAdminClient();
+    const profile = await databases.getDocument(DB_ID, USERS_COLLECTION, userId);
+
+    return {
+      $id: userId,
+      name: String(profile.name || "Участник сообщества"),
+      city: profile.city ? String(profile.city) : undefined,
+      district: profile.district ? String(profile.district) : undefined,
+      avatarUrl: profile.avatar_url ? String(profile.avatar_url) : undefined,
+      bio: profile.bio ? String(profile.bio) : undefined,
+    };
+  } catch {
+    return null;
   }
 });

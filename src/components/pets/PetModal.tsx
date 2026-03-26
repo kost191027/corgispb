@@ -14,7 +14,7 @@ export function PetModal({ children }: { children: React.ReactNode }) {
 
   return (
     <Dialog open={true} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full p-0 overflow-hidden sm:rounded-[2rem] border-none bg-surface">
+      <DialogContent className="w-[min(96vw,1120px)] max-w-[1120px] p-0 overflow-hidden sm:rounded-[2rem] border-none bg-surface">
         {children}
       </DialogContent>
     </Dialog>

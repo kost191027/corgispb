@@ -1,14 +1,17 @@
+"use client";
+
 import dynamic from "next/dynamic";
+import React from "react";
+import { SaveMeetingButton } from "@/components/cabinet/SaveMeetingButton";
 import { MapLoadingPlaceholder } from "@/components/map/MapLoadingPlaceholder";
+import { APP_SELECT_CLASS, APP_SELECT_ICON_WRAPPER_CLASS } from "@/lib/forms";
 import type { MapMarker } from "@/components/map/YandexMap";
 
 const YandexMap = dynamic(
   () => import("@/components/map/YandexMap").then((mod) => mod.YandexMap),
   {
     ssr: false,
-    loading: () => (
-      <MapLoadingPlaceholder label="Подгружаем карту ближайших встреч..." />
-    ),
+    loading: () => <MapLoadingPlaceholder label="Подгружаем карту ближайших встреч..." />,
   },
 );
 
@@ -21,7 +24,6 @@ const MEETING_MARKERS: MapMarker[] = [
 export default function MeetingsPage() {
   return (
     <main className="pt-24 pb-32">
-      {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-6 mb-16">
         <div className="relative rounded-xl overflow-hidden min-h-[500px] flex items-end p-8 md:p-16">
           <div className="absolute inset-0 z-0">
@@ -46,11 +48,9 @@ export default function MeetingsPage() {
         </div>
       </section>
 
-      {/* Filter Panel */}
       <section className="max-w-7xl mx-auto px-6 mb-12">
         <div className="bg-surface-container-low p-6 md:p-8 rounded-xl shadow-sm border-none">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Search */}
             <div className="col-span-1 md:col-span-1">
               <label className="block text-xs font-bold font-headline text-on-surface-variant mb-2 uppercase tracking-widest pl-1">Поиск</label>
               <div className="relative">
@@ -62,25 +62,23 @@ export default function MeetingsPage() {
                 <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline-variant pointer-events-none">search</span>
               </div>
             </div>
-            
-            {/* District */}
+
             <div>
               <label className="block text-xs font-bold font-headline text-on-surface-variant mb-2 uppercase tracking-widest pl-1">Район</label>
               <div className="relative">
-                <select className="w-full bg-surface-container-lowest border-none rounded-full px-6 py-3 focus:ring-2 focus:ring-primary/40 focus:outline-none text-sm appearance-none cursor-pointer transition-shadow font-body text-on-surface">
+                <select className={`${APP_SELECT_CLASS} cursor-pointer bg-surface-container-lowest py-3 text-sm`}>
                   <option>Все районы</option>
                   <option>Василеостровский</option>
                   <option>Приморский</option>
                   <option>Центральный</option>
                   <option>Петроградский</option>
                 </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <span className="material-symbols-outlined text-outline-variant">expand_more</span>
-                </div>
+                <span className={APP_SELECT_ICON_WRAPPER_CLASS}>
+                  <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                </span>
               </div>
             </div>
-            
-            {/* Type */}
+
             <div>
               <label className="block text-xs font-bold font-headline text-on-surface-variant mb-2 uppercase tracking-widest pl-1">Тип встречи</label>
               <div className="flex flex-wrap gap-2">
@@ -89,8 +87,7 @@ export default function MeetingsPage() {
                 <button className="bg-surface-container-highest text-on-surface-variant px-4 py-2 rounded-full text-xs font-bold font-headline hover:bg-primary-fixed-dim transition-colors">Пикник</button>
               </div>
             </div>
-            
-            {/* More Filters */}
+
             <div className="flex items-end">
               <button className="w-full bg-tertiary-container text-on-tertiary-container py-3 rounded-full text-sm font-bold font-headline flex justify-center items-center gap-2 hover:bg-tertiary hover:text-white transition-all shadow-sm active:scale-95">
                 <span className="material-symbols-outlined text-lg">tune</span>
@@ -101,7 +98,6 @@ export default function MeetingsPage() {
         </div>
       </section>
 
-      {/* Events Grid (Asymmetric Bento Style) */}
       <section className="max-w-7xl mx-auto px-6 mb-20 font-body">
         <div className="flex justify-between items-end mb-8">
           <div>
@@ -117,39 +113,34 @@ export default function MeetingsPage() {
             </button>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          {/* Large Highlight Card */}
           <div className="md:col-span-7 bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm group hover:shadow-xl transition-all duration-300 border border-outline-variant/10 cursor-pointer flex flex-col">
             <div className="relative h-64 md:h-80 overflow-hidden shrink-0">
               <img 
                 alt="Group of corgis playing in the park" 
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdybnthR7L5a2EXGZEoNnnJ1T0cKNZhw5MlKoCWjEmS3iMZi1zitNldlE4317soM54zOAvV5M4o0lp7jQnFefjBCW3DUm6DekWIAP59hIh2RfpwwQ1koM2VJl8W2g2pfJeZLA55aZCNdRH_ti0dg-zdEkd6PDebkNsCMremMLvnC1IH-VWvC-QxyXt3LlBnU7vsJcfqiA9rUbAkBnKzvKctwdLnrUnVnOcY-KL4PASOlBbaYEOkQeNKHxaPCGHkkb8sWQKc3vl-XE" 
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdybnthR7L5akZsj_bzfQa2-b6ABhTsY0j0wd-pg5byWErOq5kE6Iplfc6-r7K1f31v8UBAbOR_Av5YoN7ODDcIubtD0IWe6vVUBDRKZxW6UEp31Kp9yk5WhPj6AslV8u3A-W5QqM3R1zCnQxHV9C6R3Wf3DDHpI-Z1PdRA1tSnA1lPpI1V4QcL9M6p8G6txFipg3BB86cMZQ8Xo27D6tE7QclvvQf3r2rQ3Yt5J6r78oDhO7o78cDdzZmbmI0nY7lud8qgD6d" 
                 crossOrigin="anonymous" 
               />
-              <div className="absolute top-4 left-4 bg-secondary-container text-on-secondary-container px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
-                Главное событие
-              </div>
             </div>
-            <div className="p-8 flex flex-col flex-1 pb-10">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-4 gap-4">
-                <div>
-                  <h3 className="text-2xl font-extrabold font-headline mb-3 text-on-surface">Корги-забег в парке 300-летия</h3>
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-on-surface-variant font-medium">
-                    <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-primary text-xl">calendar_month</span> 15 июня
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-primary text-xl">schedule</span> 12:00
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-primary text-xl">group</span> 42 участника
-                    </div>
-                  </div>
+            <div className="p-8 flex flex-col flex-1">
+              <div className="flex flex-wrap items-center gap-3 mb-5">
+                <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">15 июня</span>
+                <span className="bg-green-100 text-green-800 px-4 py-1.5 rounded-full text-xs font-bold">Мест: много</span>
+              </div>
+              <h3 className="text-3xl font-black font-headline text-on-surface mb-4 leading-tight">
+                Корги-забег в парке 300-летия
+              </h3>
+              <div className="flex flex-wrap gap-4 mb-6 text-sm text-on-surface-variant font-medium">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-xl">location_on</span> Парк 300-летия
                 </div>
-                <div className="text-left md:text-right">
-                  <span className="bg-green-100 text-green-800 px-4 py-1.5 rounded-full text-xs font-bold inline-block">Мест: много</span>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-xl">schedule</span> 12:00
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-xl">group</span> 42 участника
                 </div>
               </div>
               <p className="text-on-surface-variant mb-6 line-clamp-2 md:line-clamp-none flex-1 mt-2">
@@ -158,12 +149,23 @@ export default function MeetingsPage() {
               <button className="w-full bg-primary text-on-primary py-4 rounded-full font-headline font-bold hover:bg-primary-container hover:text-on-primary-container transition-colors active:scale-95 shadow-lg shadow-primary/20 mt-auto">
                 Я пойду
               </button>
+              <div className="mt-3">
+                <SaveMeetingButton
+                  className="w-full py-3 rounded-full bg-white text-primary font-bold hover:bg-primary-fixed transition-colors"
+                  event={{
+                    id: "meeting-park-300",
+                    title: "Корги-забег в парке 300-летия",
+                    eventDate: "2026-06-15T12:00",
+                    location: "Парк 300-летия",
+                    type: "Прогулка",
+                    description: "Традиционный летний забег на коротких лапках.",
+                  }}
+                />
+              </div>
             </div>
           </div>
-          
-          {/* Secondary Cards Stack */}
+
           <div className="md:col-span-5 flex flex-col gap-6">
-            {/* Card 2 */}
             <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-lg transition-all border-l-4 border-l-tertiary cursor-pointer group">
               <div className="flex gap-6 items-center">
                 <div className="w-24 h-24 rounded-lg overflow-hidden shrink-0 relative">
@@ -181,15 +183,22 @@ export default function MeetingsPage() {
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-primary px-3 py-1 bg-primary/10 rounded-full">18 июня, 18:30</span>
-                    <button className="text-tertiary text-sm font-bold flex items-center gap-1 hover:text-tertiary-container transition-colors">
-                      Записаться <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                    </button>
+                    <SaveMeetingButton
+                      className="text-tertiary text-sm font-bold flex items-center gap-1 hover:text-tertiary-container transition-colors"
+                      event={{
+                        id: "meeting-mars-field",
+                        title: "Занятие с кинологом: Рядом!",
+                        eventDate: "2026-06-18T18:30",
+                        location: "Марсово поле",
+                        type: "Уход",
+                        description: "Практическое занятие с кинологом.",
+                      }}
+                    />
                   </div>
                 </div>
               </div>
             </div>
-            
-            {/* Card 3 */}
+
             <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm hover:shadow-lg transition-all border-l-4 border-l-primary-container cursor-pointer group">
               <div className="flex gap-6 items-center">
                 <div className="w-24 h-24 rounded-lg overflow-hidden shrink-0 relative">
@@ -207,15 +216,22 @@ export default function MeetingsPage() {
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-primary px-3 py-1 bg-primary/10 rounded-full">22 июня, 14:00</span>
-                    <button className="text-tertiary text-sm font-bold flex items-center gap-1 hover:text-tertiary-container transition-colors">
-                      Участвовать <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                    </button>
+                    <SaveMeetingButton
+                      className="text-tertiary text-sm font-bold flex items-center gap-1 hover:text-tertiary-container transition-colors"
+                      event={{
+                        id: "meeting-yusupov",
+                        title: "Корги-Пикник: Начало лета",
+                        eventDate: "2026-06-22T14:00",
+                        location: "Юсуповский сад",
+                        type: "Игры",
+                        description: "Пикник для корги и их людей.",
+                      }}
+                    />
                   </div>
                 </div>
               </div>
             </div>
-            
-            {/* Mini Calendar/Promo */}
+
             <div className="flex-1 bg-gradient-to-br from-tertiary to-teal-800 text-white p-8 rounded-xl relative overflow-hidden flex flex-col justify-center shadow-lg">
               <div className="relative z-10">
                 <h3 className="text-2xl font-bold font-headline mb-3">Больше встреч в Telegram</h3>
@@ -232,7 +248,6 @@ export default function MeetingsPage() {
         </div>
       </section>
 
-      {/* Map Section */}
       <section className="max-w-7xl mx-auto px-6 mb-20 font-body">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-extrabold font-headline mb-4 text-on-surface">Карта встреч</h2>
@@ -240,7 +255,7 @@ export default function MeetingsPage() {
             Найдите мероприятие в своем районе. Нажмите на метку, чтобы увидеть детали и построить маршрут.
           </p>
         </div>
-        
+
         <div className="h-[500px] w-full rounded-2xl overflow-hidden border border-outline-variant/20">
           <YandexMap
             markers={MEETING_MARKERS}
@@ -248,55 +263,6 @@ export default function MeetingsPage() {
             height="500px"
             className="rounded-2xl"
           />
-        </div>
-      </section>
-
-      {/* Archive Gallery */}
-      <section className="max-w-7xl mx-auto px-6 mb-12 font-body">
-        <div className="flex justify-between items-center mb-10">
-          <h2 className="text-3xl font-extrabold font-headline text-on-surface">Архив встреч</h2>
-          <a className="text-primary font-bold hover:text-primary-container hover:underline flex items-center gap-1.5 transition-colors" href="#">
-            Вся фотогалерея <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-          </a>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          <div className="aspect-square rounded-2xl overflow-hidden relative group cursor-pointer shadow-sm">
-            <img 
-              alt="Corgi meetup photo" 
-              className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 hover:scale-105" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6TbmKAsxcFjyPxY3qA7UiogBtz2d2tAq0IzLWXaUyS8wXAyDpsyWUhT_AVZatk-7QzEV9ieiGcWtyGVQnOEmoWDQG09EZtUSDknf3MLqeIXSYXToijEOCgf2gT3QawNc6oGCdrtptn1wV2uZtyuHz2991rCaFCK1vkOMBpNf79XKniMZ0NaFy63CPgbQ4gEVBUblB8OZMr984G3Q2vWWcccidKHlrxYdGz3BQD7uQedLCGPQpAGw0UrSYArIr_Ikz2MhxnZHX3VY" 
-              crossOrigin="anonymous" 
-            />
-            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none mix-blend-overlay"></div>
-          </div>
-          <div className="aspect-square rounded-2xl overflow-hidden relative group cursor-pointer shadow-sm">
-            <img 
-              alt="Corgi in autumn park" 
-              className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 hover:scale-105" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9-MTpVaMWF_dYlv_0w6DdKf06sMH6Ijl9lhLOT1hSJc2LkC9UIancNCrv5a5a17gEL3P45DC59raz2bP5rzNs92bs1H02FgwCnCLeze9zi8Yz7Wllm8KLTsqDGUWLP-cMNs1psitw_xKSCPc9nYfuNKt-9HQCaN2sW8oRjG6l9nEmq_G2_vpD5j23wSgmlmf0qbRhJwXlcHP2fmjaLWzxw22u5j1QGZFe68VbzfA1zrQNtt-qIEF0gQP7d8LP8VYmJveFnhrIYGM" 
-              crossOrigin="anonymous" 
-            />
-            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none mix-blend-overlay"></div>
-          </div>
-          <div className="aspect-square rounded-2xl overflow-hidden relative group cursor-pointer shadow-sm">
-            <img 
-              alt="Two corgis playing" 
-              className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 hover:scale-105" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkwPRFTwcWm68eiBFT0vMJqA4AlIKHeZGKxNKQ6Lnv-mK9iYjNZxVhjx5QJbq1sKOJYh4m7bgFwbt2reYpSClp7jv6rYcXxr-kptOn6vZbYV7G3GT85ji8bf5We2J9-tQHhx7GV7KONgeXnnB6Tifn3yOrwQhQP679twxMeFzCHE9S3sYYodDA0qGwxDJKtQsIz699CVa4iPGA16yFEGVlZIqoyHv8OImlddFg0Iwgur8VrvBBSary_44nVEsJq2qFHATnTDxRYqk" 
-              crossOrigin="anonymous" 
-            />
-            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none mix-blend-overlay"></div>
-          </div>
-          <div className="aspect-square rounded-2xl overflow-hidden relative group cursor-pointer shadow-sm">
-            <img 
-              alt="Corgi sitting on a bench" 
-              className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 hover:scale-105" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2wMSsrO5MeaPuh-dHpJKrt_ec83kmCUJyPuFQge4sqCpELrUmAkUudN-h4PuIybSY27xVa8aWWmd3OlnkSIUSBIE4nMKNmNFZj2NpVurHpeRjRpIMZERgPkjjurXKlRcHRURiemxAoyQRDkLlfKinCtdHWXyrEeAnbGhDARLp5Buwha_vWlnDSIx74K_i7vyS__qOvIeIl1GE2URtyd1YhkuW29VPk6QzsO7PZuI2yjR2Eay-UnnI8FFr2Rq3UroeXzqOf_fky_Q" 
-              crossOrigin="anonymous" 
-            />
-            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none mix-blend-overlay"></div>
-          </div>
         </div>
       </section>
     </main>
