@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { reportSosAction, type SosReportType } from "@/actions/sos";
 import { SosLocationPicker } from "@/components/sos/SosLocationPicker";
-import { geocodeAddress } from "@/lib/client/geocode";
 
 type SosModalProps = {
   isOpen: boolean;
@@ -25,7 +24,6 @@ export default function SosModal({
   initialMode = "lost",
 }: SosModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const lastResolvedAddressRef = useRef("");
   const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<SosReportType>(initialMode);
   const [address, setAddress] = useState("");
@@ -37,9 +35,6 @@ export default function SosModal({
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [locationStatus, setLocationStatus] = useState<string | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function formatRussianPhone(value: string) {
@@ -92,48 +87,6 @@ export default function SosModal({
     return formatted.trim();
   }
 
-  async function resolveAddressFromField(nextAddress: string) {
-    const normalizedAddress = nextAddress.trim();
-
-    if (!normalizedAddress) {
-      setLocationStatus(null);
-      setLocationError(null);
-      return;
-    }
-
-    if (normalizedAddress === lastResolvedAddressRef.current) {
-      return;
-    }
-
-    setIsResolvingAddress(true);
-    setLocationError(null);
-    setLocationStatus("Проверяем адрес и ставим метку на карте...");
-
-    try {
-      const payload = await geocodeAddress(normalizedAddress);
-      const resolvedAddress = payload.address || normalizedAddress;
-
-      setAddress(resolvedAddress);
-      setCoordinates({
-        latitude:
-          typeof payload.latitude === "number" ? payload.latitude : null,
-        longitude:
-          typeof payload.longitude === "number" ? payload.longitude : null,
-      });
-      lastResolvedAddressRef.current = resolvedAddress;
-      setLocationStatus(
-        "Адрес найден. Если точка неточная, включите ручное размещение на карте.",
-      );
-    } catch (error) {
-      setLocationError(
-        error instanceof Error ? error.message : "Не удалось найти адрес.",
-      );
-      setLocationStatus(null);
-    } finally {
-      setIsResolvingAddress(false);
-    }
-  }
-
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
@@ -177,10 +130,6 @@ export default function SosModal({
       setSelectedPhotos([]);
       setCoordinates({ latitude: null, longitude: null });
       setFeedback(null);
-      setLocationStatus(null);
-      setLocationError(null);
-      setIsResolvingAddress(false);
-      lastResolvedAddressRef.current = "";
 
       setPhotoPreviews((current) => {
         for (const preview of current) {
@@ -337,7 +286,7 @@ export default function SosModal({
                 </div>
 
                 <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                  Главное фото видно на карточке, остальные откроются в деталях объявления.
+                  В карточку объявления сейчас сохраняется главное фото.
                 </p>
               </div>
 
@@ -356,22 +305,12 @@ export default function SosModal({
                   address={address}
                   latitude={coordinates.latitude}
                   longitude={coordinates.longitude}
-                  isResolvingAddress={isResolvingAddress}
-                  addressStatus={locationStatus}
-                  externalError={locationError}
                   onResolve={(next) => {
                     setAddress(next.address);
                     setCoordinates({
                       latitude: next.latitude,
                       longitude: next.longitude,
                     });
-                    lastResolvedAddressRef.current = next.address.trim();
-                    setLocationError(null);
-                    setLocationStatus(
-                      next.latitude !== null && next.longitude !== null
-                        ? "Точка сохранена. При необходимости переставьте ее вручную."
-                        : null,
-                    );
                   }}
                 />
               </div>
@@ -417,10 +356,10 @@ export default function SosModal({
                   const result = await reportSosAction(formData);
                   setFeedback(result.message);
 
-                  if (result.success) {
-                    form.reset();
-                    setAddress("");
-                    setPhone("");
+                    if (result.success) {
+                      form.reset();
+                      setAddress("");
+                      setPhone("");
                     setSelectedPhotos([]);
                     setCoordinates({ latitude: null, longitude: null });
                     setPhotoPreviews((current) => {
@@ -538,14 +477,7 @@ export default function SosModal({
                 <input
                   name="address"
                   value={address}
-                  onChange={(event) => {
-                    setAddress(event.target.value);
-                    setLocationError(null);
-                    setLocationStatus(null);
-                  }}
-                  onBlur={(event) => {
-                    void resolveAddressFromField(event.target.value);
-                  }}
+                  onChange={(event) => setAddress(event.target.value)}
                   className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low p-2.5 text-sm font-medium outline-none transition-all placeholder:text-stone-400 focus:border-primary/40 focus:ring-2 focus:ring-primary/40"
                   placeholder="Район, парк, адрес или ориентир"
                   type="text"
