@@ -1,0 +1,208 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { ClientYandexMap } from "@/components/map/ClientYandexMap";
+import {
+  COMMUNITY_DISTRICT_STATS,
+  COMMUNITY_MAP_CATEGORIES,
+  COMMUNITY_MAP_SPOTS,
+  type CommunityMapCategory,
+  toCommunityMapMarker,
+} from "@/lib/map-spots";
+
+export function CommunityMapExplorer() {
+  const [selectedCategory, setSelectedCategory] = useState<CommunityMapCategory>("all");
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
+  const [selectedSpotId, setSelectedSpotId] = useState(COMMUNITY_MAP_SPOTS[0]?.id ?? "");
+
+  const filteredSpots = useMemo(() => {
+    return COMMUNITY_MAP_SPOTS.filter((spot) => {
+      const matchesCategory =
+        selectedCategory === "all" || spot.category === selectedCategory;
+      const matchesDistrict = !selectedDistrict || spot.district === selectedDistrict;
+
+      return matchesCategory && matchesDistrict;
+    });
+  }, [selectedCategory, selectedDistrict]);
+
+  const selectedSpot =
+    filteredSpots.find((spot) => spot.id === selectedSpotId) ?? filteredSpots[0] ?? COMMUNITY_MAP_SPOTS[0];
+
+  const markers = useMemo(() => filteredSpots.map(toCommunityMapMarker), [filteredSpots]);
+
+  return (
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-6 py-12">
+      <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-tertiary-container/30 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-on-tertiary-container">
+            <span className="material-symbols-outlined text-sm">location_on</span>
+            Районы города
+          </div>
+          <h1 className="mb-3 font-display text-4xl font-black text-on-surface md:text-5xl">
+            Где мы гуляем?
+          </h1>
+          <p className="max-w-3xl text-lg text-on-surface-variant">
+            Единая карта сообщества: парки, кафе и районные точки, где проще всего найти своих рядом.
+          </p>
+        </div>
+        <div className="rounded-full bg-surface-container-high px-5 py-3 text-sm font-bold text-on-surface-variant">
+          {filteredSpots.length} точек по выбранным фильтрам
+        </div>
+      </div>
+
+      <section className="mb-8 flex flex-col gap-12 md:flex-row md:items-start">
+        <div className="w-full space-y-6 md:w-1/3">
+          <p className="leading-relaxed text-on-surface-variant">
+            Найдите единомышленников в своём районе. Мы перенесли в карту основные точки сообщества и сделали единый слой данных для дальнейших доработок.
+          </p>
+          <div className="space-y-3">
+            {COMMUNITY_DISTRICT_STATS.map((district) => {
+              const isActive = selectedDistrict === district.district;
+
+              return (
+                <button
+                  key={district.district}
+                  className={`flex w-full items-center justify-between rounded-lg p-4 text-left transition-colors ${
+                    isActive
+                      ? "border-l-4 border-primary bg-surface-container-low"
+                      : "bg-surface-container-lowest hover:bg-surface-container"
+                  }`}
+                  onClick={() =>
+                    setSelectedDistrict((current) =>
+                      current === district.district ? null : district.district,
+                    )
+                  }
+                  type="button"
+                >
+                  <span className={isActive ? "font-bold" : "font-medium"}>{district.district}</span>
+                  <span className={`rounded-full px-2 py-1 text-xs ${isActive ? "bg-primary/10 font-bold text-primary" : "bg-stone-100 text-stone-500"}`}>
+                    {district.ownersLabel}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="h-[520px] w-full md:w-2/3">
+          <ClientYandexMap
+            height="520px"
+            loadingLabel="Открываем полную карту прогулок..."
+            markers={markers}
+            onMarkerClick={(marker) => setSelectedSpotId(marker.id)}
+          />
+        </div>
+      </section>
+
+      <section className="mb-8 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-3 border-y border-stone-100 py-4">
+          <span className="mr-4 text-xs font-bold uppercase tracking-widest text-stone-400">Фильтры:</span>
+          {COMMUNITY_MAP_CATEGORIES.map((category) => {
+            const isActive = selectedCategory === category.id;
+
+            return (
+              <button
+                key={category.id}
+                className={`whitespace-nowrap rounded-full px-6 py-2.5 text-sm font-bold transition-colors ${
+                  isActive
+                    ? "bg-primary text-white shadow-md"
+                    : "bg-surface-container-high text-on-surface-variant hover:bg-stone-200"
+                }`}
+                onClick={() => setSelectedCategory(category.id)}
+                type="button"
+              >
+                {category.label}
+              </button>
+            );
+          })}
+          {(selectedDistrict || selectedCategory !== "all") && (
+            <button
+              className="whitespace-nowrap rounded-full bg-surface-container-low px-6 py-2.5 text-sm font-bold text-primary"
+              onClick={() => {
+                setSelectedCategory("all");
+                setSelectedDistrict(null);
+              }}
+              type="button"
+            >
+              Сбросить
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-1">
+          <h3 className="flex items-center gap-2 text-2xl font-bold">
+            <span className="material-symbols-outlined text-primary">groups</span>
+            Активные точки
+          </h3>
+          {filteredSpots.map((spot) => {
+            const isActive = selectedSpot?.id === spot.id;
+
+            return (
+              <button
+                key={spot.id}
+                className={`w-full rounded-xl p-6 text-left transition-all duration-300 ${
+                  isActive
+                    ? "bg-surface-container-low shadow-lg ring-2 ring-primary/20"
+                    : "bg-surface-container-low hover:shadow-lg"
+                }`}
+                onClick={() => setSelectedSpotId(spot.id)}
+                type="button"
+              >
+                <div className="mb-4 flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <span className="material-symbols-outlined">{spot.iconName}</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold">{spot.title}</h4>
+                    <p className="text-xs text-on-surface-variant">{spot.district}</p>
+                  </div>
+                </div>
+                <p className="mb-4 text-sm text-on-surface-variant">{spot.subtitle}</p>
+                <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold text-primary">
+                  {spot.badge}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="space-y-6 lg:col-span-2">
+          {selectedSpot ? (
+            <div className="rounded-[2rem] border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-sm">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-primary">
+                  {selectedSpot.badge}
+                </span>
+                <span className="rounded-full bg-surface-container-high px-3 py-1 text-xs font-bold text-on-surface-variant">
+                  {selectedSpot.district}
+                </span>
+              </div>
+              <h2 className="mb-2 text-3xl font-black text-on-surface">{selectedSpot.title}</h2>
+              <p className="mb-4 text-sm font-bold text-primary">{selectedSpot.subtitle}</p>
+              <p className="max-w-3xl leading-relaxed text-on-surface-variant">{selectedSpot.description}</p>
+            </div>
+          ) : null}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {filteredSpots.map((spot) => (
+              <div key={spot.id} className="rounded-[1.5rem] border border-outline-variant/10 bg-surface-container-low p-5">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-primary shadow-sm">
+                    <span className="material-symbols-outlined text-[20px]">{spot.iconName}</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface">{spot.title}</h4>
+                    <p className="text-xs text-on-surface-variant">{spot.district}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-on-surface-variant">{spot.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

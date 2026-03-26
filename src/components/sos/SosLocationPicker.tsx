@@ -1,21 +1,10 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { MapLoadingPlaceholder } from "@/components/map/MapLoadingPlaceholder";
+import { ClientYandexMap } from "@/components/map/ClientYandexMap";
 import type { MapMarker } from "@/components/map/YandexMap";
 import { reverseGeocodeCoordinates } from "@/lib/client/geocode";
-
-const YandexMap = dynamic(
-  () => import("@/components/map/YandexMap").then((mod) => mod.YandexMap),
-  {
-    ssr: false,
-    loading: () => (
-      <MapLoadingPlaceholder label="Подгружаем карту для точки пропажи..." />
-    ),
-  },
-);
 
 type SosLocationPickerProps = {
   address: string;
@@ -143,13 +132,14 @@ function ExpandedMapModal({
           </div>
 
           <div className="relative">
-            <YandexMap
+            <ClientYandexMap
               markers={markers}
               center={center}
               markerVariant="paw"
               zoom={markers.length > 0 ? 15 : 11}
               height="min(78dvh,720px)"
               className="rounded-none border-none shadow-none"
+              loadingLabel="Подгружаем карту для точки пропажи..."
               onMapClick={isManualPlacementEnabled ? onMapClick : undefined}
             />
 
@@ -293,13 +283,14 @@ export function SosLocationPicker({
 
         <div className="overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-high shadow-inner">
           <div className="relative">
-            <YandexMap
+            <ClientYandexMap
               markers={markers}
               center={mapCenter}
               markerVariant="paw"
               zoom={markers.length > 0 ? 14 : 11}
               height="260px"
               className="rounded-none border-none shadow-none"
+              loadingLabel="Подгружаем карту для точки пропажи..."
               onMapClick={
                 isManualPlacementEnabled ? handleManualMapClick : undefined
               }

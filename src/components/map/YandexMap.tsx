@@ -17,9 +17,10 @@ export interface MapMarker {
   title: string;
   subtitle?: string;
   color?: "red" | "green" | "blue" | "orange" | "teal";
+  iconName?: string;
 }
 
-interface YandexMapProps {
+export interface YandexMapProps {
   center?: [number, number];
   zoom?: number;
   markers?: MapMarker[];
@@ -125,6 +126,7 @@ function loadYmapsScript(apiKey: string): Promise<void> {
 
 function createPinMarkerElement(marker: MapMarker) {
   const el = document.createElement("div");
+  const iconName = marker.iconName ?? "location_on";
   el.style.cssText = `
     width: 36px;
     height: 36px;
@@ -139,7 +141,7 @@ function createPinMarkerElement(marker: MapMarker) {
     transition: transform 0.2s;
   `;
   el.innerHTML =
-    "<span style=\"color:white;font-size:16px;font-family:'Material Symbols Outlined';font-variation-settings:'FILL' 1\">location_on</span>";
+    `<span style="color:white;font-size:16px;font-family:'Material Symbols Outlined';font-variation-settings:'FILL' 1">${iconName}</span>`;
   el.title = marker.title;
   el.onmouseenter = () => {
     el.style.transform = "scale(1.3)";

@@ -1,19 +1,10 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useDeferredValue, useMemo, useState } from "react";
 import { SaveMeetingButton } from "@/components/cabinet/SaveMeetingButton";
-import { MapLoadingPlaceholder } from "@/components/map/MapLoadingPlaceholder";
+import { ClientYandexMap } from "@/components/map/ClientYandexMap";
 import type { MapMarker } from "@/components/map/YandexMap";
 import { APP_SELECT_CLASS, APP_SELECT_ICON_WRAPPER_CLASS } from "@/lib/forms";
-
-const YandexMap = dynamic(
-  () => import("@/components/map/YandexMap").then((mod) => mod.YandexMap),
-  {
-    ssr: false,
-    loading: () => <MapLoadingPlaceholder label="Подгружаем карту ближайших встреч..." />,
-  },
-);
 
 type MeetingRecord = {
   id: string;
@@ -457,7 +448,12 @@ export function MeetingsPageClient() {
         </div>
 
         <div className="h-[500px] w-full overflow-hidden rounded-2xl border border-outline-variant/20">
-          <YandexMap center={[30.3158, 59.9391]} markers={markers} zoom={10.8} />
+          <ClientYandexMap
+            center={[30.3158, 59.9391]}
+            loadingLabel="Подгружаем карту ближайших встреч..."
+            markers={markers}
+            zoom={10.8}
+          />
         </div>
       </section>
     </main>
