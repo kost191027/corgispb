@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ClientYandexMap } from "@/components/map/ClientYandexMap";
 import type { MapMarker } from "@/components/map/YandexMap";
@@ -13,6 +13,7 @@ type SosLocationPickerProps = {
   isResolvingAddress?: boolean;
   addressStatus?: string | null;
   externalError?: string | null;
+  showExpandButton?: boolean;
   onResolve: (next: {
     address: string;
     latitude: number | null;
@@ -26,6 +27,7 @@ function ExpandedMapModal({
   isOpen,
   markers,
   center,
+  zoom,
   isManualPlacementEnabled,
   isResolving,
   hasMarker,
@@ -33,10 +35,13 @@ function ExpandedMapModal({
   onToggleManualPlacement,
   onClearMarker,
   onMapClick,
+  onMarkerDragEnd,
+  onViewportChange,
 }: {
   isOpen: boolean;
   markers: MapMarker[];
   center?: [number, number];
+  zoom: number;
   isManualPlacementEnabled: boolean;
   isResolving: boolean;
   hasMarker: boolean;
@@ -44,6 +49,8 @@ function ExpandedMapModal({
   onToggleManualPlacement: () => void;
   onClearMarker: () => void;
   onMapClick?: (coordinates: [number, number]) => void;
+  onMarkerDragEnd?: (marker: MapMarker, coordinates: [number, number]) => void;
+  onViewportChange?: (next: { center?: [number, number]; zoom?: number }) => void;
 }) {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -136,11 +143,13 @@ function ExpandedMapModal({
               markers={markers}
               center={center}
               markerVariant="paw"
-              zoom={markers.length > 0 ? 15 : 11}
+              zoom={zoom}
               height="min(78dvh,720px)"
               className="rounded-none border-none shadow-none"
               loadingLabel="Подгружаем карту для точки пропажи..."
               onMapClick={isManualPlacementEnabled ? onMapClick : undefined}
+              onMarkerDragEnd={onMarkerDragEnd}
+              onViewportChange={onViewportChange}
             />
 
             {isManualPlacementEnabled ? (
@@ -169,6 +178,7 @@ export function SosLocationPicker({
   isResolvingAddress = false,
   addressStatus = null,
   externalError = null,
+  showExpandButton = true,
   onResolve,
 }: SosLocationPickerProps) {
   const [isManualPlacementEnabled, setIsManualPlacementEnabled] =
@@ -176,40 +186,92 @@ export function SosLocationPicker({
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [internalError, setInternalError] = useState<string | null>(null);
   const [isManualResolving, setIsManualResolving] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(
+    typeof latitude === "number" && typeof longitude === "number"
+      ? [longitude, latitude]
+      : undefined,
+  );
+  const [mapZoom, setMapZoom] = useState(
+    typeof latitude === "number" && typeof longitude === "number" ? 14 : 11,
+  );
+  const viewportRef = useRef<{
+    center?: [number, number];
+    zoom: number;
+  }>({
+    center:
+      typeof latitude === "number" && typeof longitude === "number"
+        ? [longitude, latitude]
+        : undefined,
+    zoom:
+      typeof latitude === "number" && typeof longitude === "number" ? 14 : 11,
+  });
 
-  const hasMarker =
-    typeof latitude === "number" && typeof longitude === "number";
+  const resolvedCoordinates = useMemo(
+    () =>
+      typeof latitude === "number" && typeof longitude === "number"
+        ? ([longitude, latitude] as [number, number])
+        : null,
+    [latitude, longitude],
+  );
+  const hasMarker = Boolean(resolvedCoordinates);
 
   const markers: MapMarker[] = useMemo(
     () =>
-      hasMarker
+      resolvedCoordinates
         ? [
             {
               id: "sos-location",
-              coordinates: [longitude, latitude],
+              coordinates: resolvedCoordinates,
               title: address || "Точка на карте",
               subtitle: "Метка объявления SOS",
               color: "red",
+              draggable: isManualPlacementEnabled,
             },
           ]
         : EMPTY_MARKERS,
-    [address, hasMarker, latitude, longitude],
+    [address, isManualPlacementEnabled, resolvedCoordinates],
   );
 
-  const mapCenter = hasMarker ? ([longitude, latitude] as [number, number]) : undefined;
+  useEffect(() => {
+    if (!resolvedCoordinates) {
+      setMapCenter(undefined);
+      viewportRef.current.center = undefined;
+      return;
+    }
+
+    setMapCenter(resolvedCoordinates);
+    viewportRef.current.center = resolvedCoordinates;
+  }, [resolvedCoordinates]);
+
+  useEffect(() => {
+    if (resolvedCoordinates) {
+      setMapZoom((current) => {
+        const nextZoom = current < 13 ? 14 : current;
+        viewportRef.current.zoom = nextZoom;
+        return nextZoom;
+      });
+    }
+  }, [resolvedCoordinates]);
 
   const clearMarker = () => {
     onResolve({ address, latitude: null, longitude: null });
-    setIsManualPlacementEnabled(false);
     setInternalError(null);
   };
 
-  const handleManualMapClick = async ([nextLongitude, nextLatitude]: [
+  const handleManualMapClick = useCallback(async ([nextLongitude, nextLatitude]: [
     number,
     number,
   ]) => {
     setIsManualResolving(true);
     setInternalError(null);
+    setMapZoom(viewportRef.current.zoom);
+    setMapCenter([nextLongitude, nextLatitude]);
+    viewportRef.current.center = [nextLongitude, nextLatitude];
+    onResolve({
+      address,
+      latitude: nextLatitude,
+      longitude: nextLongitude,
+    });
 
     try {
       const result = await reverseGeocodeCoordinates(
@@ -218,7 +280,6 @@ export function SosLocationPicker({
       );
 
       onResolve(result);
-      setIsManualPlacementEnabled(false);
     } catch (resolveError) {
       setInternalError(
         resolveError instanceof Error
@@ -233,7 +294,7 @@ export function SosLocationPicker({
     } finally {
       setIsManualResolving(false);
     }
-  };
+  }, [address, onResolve]);
 
   const combinedError = internalError || externalError;
   const isBusy = isResolvingAddress || isManualResolving;
@@ -262,13 +323,15 @@ export function SosLocationPicker({
                 : "Поставить вручную"}
           </button>
 
-          <button
-            type="button"
-            onClick={() => setIsMapExpanded(true)}
-            className="rounded-full bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-on-primary transition-colors hover:bg-primary/90"
-          >
-            Развернуть карту
-          </button>
+          {showExpandButton ? (
+            <button
+              type="button"
+              onClick={() => setIsMapExpanded(true)}
+              className="rounded-full bg-primary px-4 py-2 text-xs font-black uppercase tracking-widest text-on-primary transition-colors hover:bg-primary/90"
+            >
+              Развернуть карту
+            </button>
+          ) : null}
 
           {hasMarker ? (
             <button
@@ -287,13 +350,27 @@ export function SosLocationPicker({
               markers={markers}
               center={mapCenter}
               markerVariant="paw"
-              zoom={markers.length > 0 ? 14 : 11}
+              zoom={mapZoom}
               height="260px"
               className="rounded-none border-none shadow-none"
               loadingLabel="Подгружаем карту для точки пропажи..."
               onMapClick={
                 isManualPlacementEnabled ? handleManualMapClick : undefined
               }
+              onMarkerDragEnd={
+                isManualPlacementEnabled && resolvedCoordinates
+                  ? (_marker, coordinates) => void handleManualMapClick(coordinates)
+                  : undefined
+              }
+              onViewportChange={({ center: nextCenter, zoom: nextZoom }) => {
+                if (Array.isArray(nextCenter) && nextCenter.length === 2) {
+                  viewportRef.current.center = nextCenter;
+                }
+
+                if (typeof nextZoom === "number" && Number.isFinite(nextZoom)) {
+                  viewportRef.current.zoom = nextZoom;
+                }
+              }}
             />
 
             {isManualPlacementEnabled ? (
@@ -313,8 +390,8 @@ export function SosLocationPicker({
 
       {hasMarker ? (
         <div className="rounded-2xl bg-primary/5 px-4 py-3 text-xs font-bold leading-relaxed text-on-surface">
-          Метка размещена. Если точка неточная, включите «Поставить вручную»
-          или откройте увеличенную карту.
+          Метка размещена. Если точка неточная, включите «Поставить вручную»,
+          нажмите в другое место на карте или перетащите лапку.
         </div>
       ) : isManualPlacementEnabled ? (
         <div className="rounded-2xl bg-tertiary/10 px-4 py-3 text-xs font-bold leading-relaxed text-on-surface">
@@ -347,9 +424,10 @@ export function SosLocationPicker({
       ) : null}
 
       <ExpandedMapModal
-        isOpen={isMapExpanded}
+        isOpen={showExpandButton && isMapExpanded}
         markers={markers}
         center={mapCenter}
+        zoom={mapZoom}
         isManualPlacementEnabled={isManualPlacementEnabled}
         isResolving={isBusy}
         hasMarker={hasMarker}
@@ -359,6 +437,20 @@ export function SosLocationPicker({
         }
         onClearMarker={clearMarker}
         onMapClick={handleManualMapClick}
+        onMarkerDragEnd={
+          isManualPlacementEnabled && resolvedCoordinates
+            ? (_marker, coordinates) => void handleManualMapClick(coordinates)
+            : undefined
+        }
+        onViewportChange={({ center: nextCenter, zoom: nextZoom }) => {
+          if (Array.isArray(nextCenter) && nextCenter.length === 2) {
+            viewportRef.current.center = nextCenter;
+          }
+
+          if (typeof nextZoom === "number" && Number.isFinite(nextZoom)) {
+            viewportRef.current.zoom = nextZoom;
+          }
+        }}
       />
     </div>
   );

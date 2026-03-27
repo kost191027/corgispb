@@ -1,32 +1,77 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ClientYandexMap } from "@/components/map/ClientYandexMap";
 import {
   COMMUNITY_DISTRICT_STATS,
   COMMUNITY_MAP_CATEGORIES,
-  COMMUNITY_MAP_SPOTS,
   type CommunityMapCategory,
   toCommunityMapMarker,
 } from "@/lib/map-spots";
+import { useCommunityMapData } from "@/components/map/useCommunityMapData";
+
+function SpotAuthorMeta({
+  author,
+}: {
+  author?: {
+    id?: string;
+    name: string;
+    profileHref?: string;
+    isAdmin?: boolean;
+  };
+}) {
+  if (!author) {
+    return null;
+  }
+
+  if (author.isAdmin) {
+    return (
+      <div className="inline-flex items-center gap-2 rounded-full bg-secondary-container px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-on-secondary-container">
+        <span className="relative flex h-5 w-6 items-center justify-center">
+          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
+            pets
+          </span>
+          <span className="material-symbols-outlined absolute -right-1 -top-1 text-[12px]">
+            verified
+          </span>
+        </span>
+        Администратор
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-primary shadow-sm transition-colors hover:bg-primary hover:text-white"
+      href={author.profileHref || `/owners/${author.id}`}
+    >
+      <span className="material-symbols-outlined text-sm">person</span>
+      {author.name}
+    </Link>
+  );
+}
 
 export function CommunityMapExplorer() {
+  const { points } = useCommunityMapData();
   const [selectedCategory, setSelectedCategory] = useState<CommunityMapCategory>("all");
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
-  const [selectedSpotId, setSelectedSpotId] = useState(COMMUNITY_MAP_SPOTS[0]?.id ?? "");
+  const [selectedSpotId, setSelectedSpotId] = useState("");
 
   const filteredSpots = useMemo(() => {
-    return COMMUNITY_MAP_SPOTS.filter((spot) => {
+    return points.filter((spot) => {
       const matchesCategory =
         selectedCategory === "all" || spot.category === selectedCategory;
       const matchesDistrict = !selectedDistrict || spot.district === selectedDistrict;
 
       return matchesCategory && matchesDistrict;
     });
-  }, [selectedCategory, selectedDistrict]);
+  }, [points, selectedCategory, selectedDistrict]);
 
   const selectedSpot =
-    filteredSpots.find((spot) => spot.id === selectedSpotId) ?? filteredSpots[0] ?? COMMUNITY_MAP_SPOTS[0];
+    filteredSpots.find((spot) => spot.id === selectedSpotId) ??
+    filteredSpots[0] ??
+    null;
 
   const markers = useMemo(() => filteredSpots.map(toCommunityMapMarker), [filteredSpots]);
 
@@ -182,6 +227,9 @@ export function CommunityMapExplorer() {
               <h2 className="mb-2 text-3xl font-black text-on-surface">{selectedSpot.title}</h2>
               <p className="mb-4 text-sm font-bold text-primary">{selectedSpot.subtitle}</p>
               <p className="max-w-3xl leading-relaxed text-on-surface-variant">{selectedSpot.description}</p>
+              <div className="mt-5">
+                <SpotAuthorMeta author={selectedSpot.author} />
+              </div>
             </div>
           ) : null}
 
@@ -198,6 +246,9 @@ export function CommunityMapExplorer() {
                   </div>
                 </div>
                 <p className="text-sm text-on-surface-variant">{spot.description}</p>
+                <div className="mt-4">
+                  <SpotAuthorMeta author={spot.author} />
+                </div>
               </div>
             ))}
           </div>

@@ -2,28 +2,71 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { AddCommunityPointModal } from "@/components/map/AddCommunityPointModal";
 import { ClientYandexMap } from "@/components/map/ClientYandexMap";
 import {
   COMMUNITY_MAP_CATEGORIES,
-  COMMUNITY_MAP_SPOTS,
   type CommunityMapCategory,
   toCommunityMapMarker,
 } from "@/lib/map-spots";
+import { useCommunityMapData } from "@/components/map/useCommunityMapData";
+
+function SpotAuthorMeta({
+  author,
+}: {
+  author?: {
+    id?: string;
+    name: string;
+    profileHref?: string;
+    isAdmin?: boolean;
+  };
+}) {
+  if (!author) {
+    return null;
+  }
+
+  if (author.isAdmin) {
+    return (
+      <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-secondary-container px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-on-secondary-container">
+        <span className="relative flex h-5 w-6 items-center justify-center">
+          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
+            pets
+          </span>
+        </span>
+        Администратор
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-primary shadow-sm transition-colors hover:bg-primary hover:text-white"
+      href={author.profileHref || `/owners/${author.id}`}
+    >
+      <span className="material-symbols-outlined text-sm">person</span>
+      {author.name}
+    </Link>
+  );
+}
 
 export function HomeCommunityMapSection() {
+  const { viewer, points, createPoint } = useCommunityMapData();
   const [selectedCategory, setSelectedCategory] = useState<CommunityMapCategory>("all");
-  const [selectedSpotId, setSelectedSpotId] = useState(COMMUNITY_MAP_SPOTS[0]?.id ?? "");
+  const [selectedSpotId, setSelectedSpotId] = useState("");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const filteredSpots = useMemo(() => {
     if (selectedCategory === "all") {
-      return COMMUNITY_MAP_SPOTS;
+      return points;
     }
 
-    return COMMUNITY_MAP_SPOTS.filter((spot) => spot.category === selectedCategory);
-  }, [selectedCategory]);
+    return points.filter((spot) => spot.category === selectedCategory);
+  }, [points, selectedCategory]);
 
   const selectedSpot =
-    filteredSpots.find((spot) => spot.id === selectedSpotId) ?? filteredSpots[0] ?? COMMUNITY_MAP_SPOTS[0];
+    filteredSpots.find((spot) => spot.id === selectedSpotId) ??
+    filteredSpots[0] ??
+    null;
 
   const markers = useMemo(() => filteredSpots.map(toCommunityMapMarker), [filteredSpots]);
 
@@ -60,11 +103,7 @@ export function HomeCommunityMapSection() {
                   }`}
                   onClick={() => {
                     setSelectedCategory(category.id);
-                    setSelectedSpotId(
-                      (category.id === "all"
-                        ? COMMUNITY_MAP_SPOTS[0]
-                        : COMMUNITY_MAP_SPOTS.find((spot) => spot.category === category.id))?.id ?? "",
-                    );
+                    setSelectedSpotId(category.id === "all" ? points[0]?.id ?? "" : points.find((spot) => spot.category === category.id)?.id ?? "");
                   }}
                   type="button"
                 >
@@ -88,19 +127,40 @@ export function HomeCommunityMapSection() {
               <h3 className="mb-2 text-2xl font-black text-on-surface">{selectedSpot.title}</h3>
               <p className="mb-2 text-sm font-bold text-primary">{selectedSpot.subtitle}</p>
               <p className="text-sm leading-relaxed text-on-surface-variant">{selectedSpot.description}</p>
+              <SpotAuthorMeta author={selectedSpot.author} />
             </div>
           ) : null}
 
-          <div className="mt-8">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               href="/community/map"
               className="inline-block rounded-full bg-primary px-8 py-4 font-display text-lg font-bold text-white transition-all hover:bg-orange-600"
             >
               Открыть полную карту
             </Link>
+            <div className="group relative">
+              <button
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-container-high text-primary shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary hover:text-white"
+                onClick={() => setIsAddModalOpen(true)}
+                title="Добавить точку"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-2xl">add</span>
+              </button>
+              <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 rounded-full bg-on-surface px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-surface opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                Добавить точку
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      <AddCommunityPointModal
+        isOpen={isAddModalOpen}
+        viewer={viewer}
+        onClose={() => setIsAddModalOpen(false)}
+        onCreatePoint={createPoint}
+      />
     </section>
   );
 }

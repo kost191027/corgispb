@@ -18,6 +18,7 @@ export interface MapMarker {
   subtitle?: string;
   color?: "red" | "green" | "blue" | "orange" | "teal";
   iconName?: string;
+  draggable?: boolean;
 }
 
 export interface YandexMapProps {
@@ -29,6 +30,9 @@ export interface YandexMapProps {
   markerVariant?: "pin" | "paw";
   onMarkerClick?: (marker: MapMarker) => void;
   onMapClick?: (coordinates: [number, number]) => void;
+  onMarkerDrag?: (marker: MapMarker, coordinates: [number, number]) => void;
+  onMarkerDragEnd?: (marker: MapMarker, coordinates: [number, number]) => void;
+  onViewportChange?: (next: { center?: [number, number]; zoom?: number }) => void;
 }
 
 const MARKER_COLORS: Record<string, string> = {
@@ -139,15 +143,20 @@ function createPinMarkerElement(marker: MapMarker) {
     align-items: center;
     justify-content: center;
     transition: transform 0.2s;
+    transform: translate(-50%, -50%) scale(1);
   `;
+  if (marker.draggable) {
+    el.style.touchAction = "none";
+    el.style.cursor = "grab";
+  }
   el.innerHTML =
     `<span style="color:white;font-size:16px;font-family:'Material Symbols Outlined';font-variation-settings:'FILL' 1">${iconName}</span>`;
   el.title = marker.title;
   el.onmouseenter = () => {
-    el.style.transform = "scale(1.3)";
+    el.style.transform = "translate(-50%, -50%) scale(1.2)";
   };
   el.onmouseleave = () => {
-    el.style.transform = "scale(1)";
+    el.style.transform = "translate(-50%, -50%) scale(1)";
   };
 
   return el;
@@ -168,15 +177,20 @@ function createPawMarkerElement(marker: MapMarker) {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 66px;
-    height: 66px;
+    width: 54px;
+    height: 54px;
     cursor: pointer;
     border: 0;
     padding: 0;
     background: transparent;
     transform-origin: center bottom;
     transition: transform 180ms ease;
+    transform: translate(-50%, -50%) scale(1);
   `;
+  if (marker.draggable) {
+    wrapper.style.touchAction = "none";
+    wrapper.style.cursor = "grab";
+  }
 
   bubble.style.cssText = `
     position: absolute;
@@ -200,15 +214,15 @@ function createPawMarkerElement(marker: MapMarker) {
   bubble.textContent = marker.title;
 
   icon.style.cssText = `
-    width: 58px;
-    height: 58px;
+    width: 46px;
+    height: 46px;
     display: flex;
     align-items: center;
     justify-content: center;
     filter: drop-shadow(0 14px 22px ${colors.shadow});
   `;
   icon.innerHTML = `
-    <svg viewBox="0 -960 960 960" width="58" height="58" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg viewBox="0 -960 960 960" width="46" height="46" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="${pawPath}" fill="${colors.base}" />
       <path d="${pawPath}" fill="${colors.toe}" opacity="0.2" transform="translate(0 -18)" />
       <path d="${pawPath}" fill="none" stroke="${colors.outline}" stroke-width="38" stroke-linejoin="round" />
@@ -219,13 +233,13 @@ function createPawMarkerElement(marker: MapMarker) {
   wrapper.appendChild(icon);
 
   wrapper.onmouseenter = () => {
-    wrapper.style.transform = "translateY(-2px) scale(1.06)";
+    wrapper.style.transform = "translate(-50%, calc(-50% - 2px)) scale(1.06)";
     bubble.style.opacity = "1";
     bubble.style.transform = "translate(-50%, 0)";
   };
 
   wrapper.onmouseleave = () => {
-    wrapper.style.transform = "translateY(0) scale(1)";
+    wrapper.style.transform = "translate(-50%, -50%) scale(1)";
     bubble.style.opacity = "0";
     bubble.style.transform = "translate(-50%, 10px)";
   };
@@ -242,6 +256,8 @@ export function YandexMap({
   markerVariant = "pin",
   onMarkerClick,
   onMapClick,
+  onMarkerDragEnd,
+  onViewportChange,
 }: YandexMapProps) {
   const mapHost = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<unknown>(null);
@@ -274,14 +290,41 @@ export function YandexMap({
       map.addChild(new YMapDefaultSchemeLayer({}));
       map.addChild(new YMapDefaultFeaturesLayer({}));
 
-      if (onMapClick) {
+      if (onMapClick || onViewportChange) {
         const mapListener = new YMapListener({
           layer: "any",
-          onClick: (_object: unknown, event: { coordinates?: [number, number] }) => {
-            if (Array.isArray(event?.coordinates) && event.coordinates.length === 2) {
-              onMapClick(event.coordinates);
-            }
-          },
+          ...(onMapClick
+            ? {
+                onClick: (
+                  _object: unknown,
+                  event: { coordinates?: [number, number] },
+                ) => {
+                  if (
+                    Array.isArray(event?.coordinates) &&
+                    event.coordinates.length === 2
+                  ) {
+                    onMapClick(event.coordinates);
+                  }
+                },
+              }
+            : {}),
+          ...(onViewportChange
+            ? {
+                onUpdate: (event: {
+                  location?: { center?: [number, number]; zoom?: number };
+                }) => {
+                  onViewportChange({
+                    center: Array.isArray(event.location?.center)
+                      ? event.location?.center
+                      : undefined,
+                    zoom:
+                      typeof event.location?.zoom === "number"
+                        ? event.location.zoom
+                        : undefined,
+                  });
+                },
+              }
+            : {}),
         });
 
         map.addChild(mapListener);
@@ -298,7 +341,18 @@ export function YandexMap({
         }
 
         const ymapMarker = new YMapMarker(
-          { coordinates: marker.coordinates },
+          {
+            coordinates: marker.coordinates,
+            ...(marker.draggable
+              ? {
+                  draggable: true,
+                  mapFollowsOnDrag: true,
+                  onDragEnd: (coordinates: [number, number]) => {
+                    onMarkerDragEnd?.(marker, coordinates);
+                  },
+                }
+              : {}),
+          },
           element,
         );
         map.addChild(ymapMarker);
@@ -311,7 +365,17 @@ export function YandexMap({
       window.__ymaps3_loading = undefined;
       setStatus("error");
     }
-  }, [apiKey, center, markerVariant, markers, onMapClick, onMarkerClick, zoom]);
+  }, [
+    apiKey,
+    center,
+    markerVariant,
+    markers,
+    onMapClick,
+    onMarkerClick,
+    onMarkerDragEnd,
+    onViewportChange,
+    zoom,
+  ]);
 
   useEffect(() => {
     if (!apiKey) {

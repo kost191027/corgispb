@@ -2,6 +2,13 @@ import type { MapMarker } from "@/components/map/YandexMap";
 
 export type CommunityMapCategory = "all" | "parks" | "cafes" | "community";
 
+export type CommunityMapSpotAuthor = {
+  id?: string;
+  name: string;
+  profileHref?: string;
+  isAdmin?: boolean;
+};
+
 export type CommunityMapSpot = {
   id: string;
   title: string;
@@ -13,6 +20,8 @@ export type CommunityMapSpot = {
   color: NonNullable<MapMarker["color"]>;
   iconName: string;
   badge: string;
+  author?: CommunityMapSpotAuthor;
+  source?: "editorial" | "community";
 };
 
 export const COMMUNITY_MAP_SPOTS: CommunityMapSpot[] = [
@@ -27,6 +36,8 @@ export const COMMUNITY_MAP_SPOTS: CommunityMapSpot[] = [
     color: "green",
     iconName: "park",
     badge: "Прогулки и встречи",
+    author: { name: "Редакция Корги СПб", isAdmin: true },
+    source: "editorial",
   },
   {
     id: "tavrichesky",
@@ -39,6 +50,8 @@ export const COMMUNITY_MAP_SPOTS: CommunityMapSpot[] = [
     color: "teal",
     iconName: "groups",
     badge: "Активная группа",
+    author: { name: "Редакция Корги СПб", isAdmin: true },
+    source: "editorial",
   },
   {
     id: "yusupov",
@@ -51,6 +64,8 @@ export const COMMUNITY_MAP_SPOTS: CommunityMapSpot[] = [
     color: "green",
     iconName: "photo_camera",
     badge: "Семейный формат",
+    author: { name: "Редакция Корги СПб", isAdmin: true },
+    source: "editorial",
   },
   {
     id: "dog-cafe-lapki",
@@ -63,6 +78,8 @@ export const COMMUNITY_MAP_SPOTS: CommunityMapSpot[] = [
     color: "orange",
     iconName: "coffee",
     badge: "Кофе после прогулки",
+    author: { name: "Редакция Корги СПб", isAdmin: true },
+    source: "editorial",
   },
   {
     id: "hvost-i-usy",
@@ -75,6 +92,8 @@ export const COMMUNITY_MAP_SPOTS: CommunityMapSpot[] = [
     color: "orange",
     iconName: "lunch_dining",
     badge: "Dog-friendly кафе",
+    author: { name: "Редакция Корги СПб", isAdmin: true },
+    source: "editorial",
   },
   {
     id: "sevcable-group",
@@ -87,6 +106,8 @@ export const COMMUNITY_MAP_SPOTS: CommunityMapSpot[] = [
     color: "teal",
     iconName: "pets",
     badge: "Живой чат района",
+    author: { name: "Редакция Корги СПб", isAdmin: true },
+    source: "editorial",
   },
 ];
 
@@ -94,11 +115,13 @@ export const COMMUNITY_MAP_CATEGORIES: Array<{
   id: CommunityMapCategory;
   label: string;
   iconName: string;
+  badge: string;
+  color: NonNullable<MapMarker["color"]>;
 }> = [
-  { id: "all", label: "Все точки", iconName: "map" },
-  { id: "parks", label: "Парки и сады", iconName: "park" },
-  { id: "cafes", label: "Dog-friendly кафе", iconName: "coffee" },
-  { id: "community", label: "Районные группы", iconName: "groups" },
+  { id: "all", label: "Все точки", iconName: "map", badge: "Все места", color: "orange" },
+  { id: "parks", label: "Парки и сады", iconName: "park", badge: "Прогулки и встречи", color: "green" },
+  { id: "cafes", label: "Dog-friendly кафе", iconName: "coffee", badge: "Dog-friendly кафе", color: "orange" },
+  { id: "community", label: "Районные группы", iconName: "groups", badge: "Активная группа", color: "teal" },
 ];
 
 export const COMMUNITY_DISTRICT_STATS = [
@@ -117,4 +140,8 @@ export function toCommunityMapMarker(spot: CommunityMapSpot): MapMarker {
     color: spot.color,
     iconName: spot.iconName,
   };
+}
+
+export function getCommunityCategoryMeta(category: Exclude<CommunityMapCategory, "all">) {
+  return COMMUNITY_MAP_CATEGORIES.find((item) => item.id === category)!;
 }
