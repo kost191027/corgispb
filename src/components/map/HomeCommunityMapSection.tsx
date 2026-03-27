@@ -75,6 +75,7 @@ export function HomeCommunityMapSection() {
       <div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-12 lg:items-center">
         <div className="order-2 h-full min-h-[400px] lg:col-span-7 lg:order-1">
           <ClientYandexMap
+            enableClustering
             markers={markers}
             loadingLabel="Подгружаем карту прогулок..."
             onMarkerClick={(marker) => setSelectedSpotId(marker.id)}

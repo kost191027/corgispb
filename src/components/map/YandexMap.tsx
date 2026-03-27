@@ -28,6 +28,7 @@ export interface YandexMapProps {
   className?: string;
   height?: string;
   markerVariant?: "pin" | "paw";
+  enableClustering?: boolean;
   onMarkerClick?: (marker: MapMarker) => void;
   onMapClick?: (coordinates: [number, number]) => void;
   onMarkerDrag?: (marker: MapMarker, coordinates: [number, number]) => void;
@@ -42,6 +43,10 @@ const MARKER_COLORS: Record<string, string> = {
   orange: "#ea580c",
   teal: "#0d9488",
 };
+
+const CLUSTERER_CDN_PACKAGE = "@yandex/ymaps3-clusterer@0.0.1";
+const CLUSTERER_SOURCE_ID = "clusterer-source";
+const CLUSTERER_LAYER_ID = "clusterer-markers";
 
 function getPawColors(color: MapMarker["color"]) {
   if (color === "teal") {
@@ -247,6 +252,102 @@ function createPawMarkerElement(marker: MapMarker) {
   return wrapper;
 }
 
+function createClusterMarkerElement(count: number) {
+  const element = document.createElement("button");
+  const halo = document.createElement("div");
+  const core = document.createElement("div");
+  const icon = document.createElement("span");
+  const value = document.createElement("span");
+  const caption = document.createElement("span");
+
+  element.type = "button";
+  element.setAttribute("aria-label", `Кластер из ${count} точек`);
+  element.style.cssText = `
+    position: relative;
+    width: 68px;
+    height: 68px;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    transform: translate(-50%, -50%) scale(1);
+    transition: transform 160ms ease;
+  `;
+
+  halo.style.cssText = `
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255,255,255,0.62), transparent 34%),
+      linear-gradient(180deg, #ffbb62 0%, #f28a00 100%);
+    box-shadow:
+      0 18px 36px rgba(242,138,0,0.28),
+      inset 0 1px 0 rgba(255,255,255,0.45);
+  `;
+
+  core.style.cssText = `
+    position: absolute;
+    inset: 7px;
+    border-radius: 9999px;
+    background: rgba(255,249,242,0.96);
+    border: 1px solid rgba(242,138,0,0.18);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+  `;
+
+  icon.className = "material-symbols-outlined";
+  icon.textContent = "pets";
+  icon.style.cssText = `
+    font-size: 14px;
+    line-height: 1;
+    color: #f28a00;
+    font-variation-settings: 'FILL' 1;
+  `;
+
+  value.textContent = String(count);
+  value.style.cssText = `
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: #1f1713;
+  `;
+
+  caption.textContent = count === 1 ? "точка" : "точек";
+  caption.style.cssText = `
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(90,62,41,0.72);
+  `;
+
+  core.appendChild(icon);
+  core.appendChild(value);
+  core.appendChild(caption);
+  element.appendChild(halo);
+  element.appendChild(core);
+
+  element.onmouseenter = () => {
+    element.style.transform = "translate(-50%, -50%) scale(1.05)";
+    halo.style.boxShadow =
+      "0 22px 42px rgba(242,138,0,0.32), inset 0 1px 0 rgba(255,255,255,0.45)";
+  };
+  element.onmouseleave = () => {
+    element.style.transform = "translate(-50%, -50%) scale(1)";
+    halo.style.boxShadow =
+      "0 18px 36px rgba(242,138,0,0.28), inset 0 1px 0 rgba(255,255,255,0.45)";
+  };
+
+  return element;
+}
+
 export function YandexMap({
   center = [30.315868, 59.939095], // Saint Petersburg
   zoom = 12,
@@ -254,6 +355,7 @@ export function YandexMap({
   className = "",
   height = "500px",
   markerVariant = "pin",
+  enableClustering = false,
   onMarkerClick,
   onMapClick,
   onMarkerDragEnd,
@@ -279,6 +381,8 @@ export function YandexMap({
         YMap,
         YMapDefaultSchemeLayer,
         YMapDefaultFeaturesLayer,
+        YMapFeatureDataSource,
+        YMapLayer,
         YMapListener,
         YMapMarker,
       } = ymaps3;
@@ -330,33 +434,126 @@ export function YandexMap({
         map.addChild(mapListener);
       }
 
-      markers.forEach((marker) => {
-        const element =
-          markerVariant === "paw"
-            ? createPawMarkerElement(marker)
-            : createPinMarkerElement(marker);
+      if (enableClustering && markerVariant === "pin" && markers.length > 1) {
+        ymaps3.import.registerCdn("https://cdn.jsdelivr.net/npm/{package}", [
+          CLUSTERER_CDN_PACKAGE,
+        ]);
 
-        if (onMarkerClick) {
-          element.addEventListener("click", () => onMarkerClick(marker));
-        }
-
-        const ymapMarker = new YMapMarker(
-          {
-            coordinates: marker.coordinates,
-            ...(marker.draggable
-              ? {
-                  draggable: true,
-                  mapFollowsOnDrag: true,
-                  onDragEnd: (coordinates: [number, number]) => {
-                    onMarkerDragEnd?.(marker, coordinates);
-                  },
-                }
-              : {}),
-          },
-          element,
+        const { YMapClusterer, clusterByGrid } = await ymaps3.import(
+          "@yandex/ymaps3-clusterer",
         );
-        map.addChild(ymapMarker);
-      });
+
+        map.addChild(new YMapFeatureDataSource({ id: CLUSTERER_SOURCE_ID }));
+        map.addChild(
+          new YMapLayer({
+            id: CLUSTERER_LAYER_ID,
+            source: CLUSTERER_SOURCE_ID,
+            type: "markers",
+            zIndex: 1800,
+          }),
+        );
+
+        const features = markers.map((marker) => ({
+          type: "Feature",
+          id: marker.id,
+          geometry: {
+            type: "Point",
+            coordinates: marker.coordinates,
+          },
+          properties: {
+            marker,
+          },
+        }));
+
+        const clusterer = new YMapClusterer({
+          method: clusterByGrid({ gridSize: 64 }),
+          features,
+          marker: (feature: {
+            geometry: { coordinates: [number, number] };
+            properties?: { marker?: MapMarker };
+          }) => {
+            const clusterMarker = feature.properties?.marker;
+
+            if (!clusterMarker) {
+              return new YMapMarker(
+                {
+                  coordinates: feature.geometry.coordinates,
+                  source: CLUSTERER_SOURCE_ID,
+                },
+                createPinMarkerElement({
+                  id: String(Math.random()),
+                  coordinates: feature.geometry.coordinates,
+                  title: "Точка на карте",
+                }),
+              );
+            }
+
+            const element = createPinMarkerElement(clusterMarker);
+            if (onMarkerClick) {
+              element.addEventListener("click", () => onMarkerClick(clusterMarker));
+            }
+
+            return new YMapMarker(
+              {
+                coordinates: feature.geometry.coordinates,
+                source: CLUSTERER_SOURCE_ID,
+              },
+              element,
+            );
+          },
+          cluster: (
+            coordinates: [number, number],
+            featuresInCluster: Array<{ properties?: { marker?: MapMarker } }>,
+          ) => {
+            const element = createClusterMarkerElement(featuresInCluster.length);
+            element.onclick = () => {
+              const nextZoom =
+                typeof (map as { zoom?: number }).zoom === "number"
+                  ? Math.min((map as { zoom: number }).zoom + 2, 18)
+                  : Math.min(zoom + 2, 18);
+              map.setLocation({ center: coordinates, zoom: nextZoom, duration: 250 });
+            };
+
+            return new YMapMarker(
+              {
+                coordinates,
+                source: CLUSTERER_SOURCE_ID,
+              },
+              element,
+            );
+          },
+        });
+
+        map.addChild(clusterer);
+      } else {
+        markers.forEach((marker) => {
+          const element =
+            markerVariant === "paw"
+              ? createPawMarkerElement(marker)
+              : createPinMarkerElement(marker);
+
+          if (onMarkerClick) {
+            element.addEventListener("click", () => onMarkerClick(marker));
+          }
+
+          const ymapMarker = new YMapMarker(
+            {
+              coordinates: marker.coordinates,
+              ...(marker.draggable
+                ? {
+                    draggable: true,
+                    mapFollowsOnDrag: true,
+                    onDragEnd: (coordinates: [number, number]) => {
+                      onMarkerDragEnd?.(marker, coordinates);
+                    },
+                  }
+                : {}),
+            },
+            element,
+          );
+          map.addChild(ymapMarker);
+        });
+      }
 
       mapInstance.current = map;
       setStatus("ready");
@@ -368,6 +565,7 @@ export function YandexMap({
   }, [
     apiKey,
     center,
+    enableClustering,
     markerVariant,
     markers,
     onMapClick,

@@ -132,6 +132,7 @@ export function CommunityMapExplorer() {
         <div className="h-[520px] w-full md:w-2/3">
           <ClientYandexMap
             height="520px"
+            enableClustering
             loadingLabel="Открываем полную карту прогулок..."
             markers={markers}
             onMarkerClick={(marker) => setSelectedSpotId(marker.id)}

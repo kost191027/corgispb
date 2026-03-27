@@ -450,6 +450,7 @@ export function MeetingsPageClient() {
         <div className="h-[500px] w-full overflow-hidden rounded-2xl border border-outline-variant/20">
           <ClientYandexMap
             center={[30.3158, 59.9391]}
+            enableClustering
             loadingLabel="Подгружаем карту ближайших встреч..."
             markers={markers}
             zoom={10.8}
