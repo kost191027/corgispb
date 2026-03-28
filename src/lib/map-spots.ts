@@ -24,6 +24,14 @@ export type CommunityMapSpot = {
   source?: "editorial" | "community";
 };
 
+export type CommunityMapDistrictStat = {
+  district: string;
+  ownersCount: number;
+  pointsCount: number;
+  ownersLabel: string;
+  pointsLabel: string;
+};
+
 export const COMMUNITY_MAP_SPOTS: CommunityMapSpot[] = [
   {
     id: "park-300",
@@ -124,18 +132,12 @@ export const COMMUNITY_MAP_CATEGORIES: Array<{
   { id: "community", label: "Районные группы", iconName: "groups", badge: "Активная группа", color: "teal" },
 ];
 
-export const COMMUNITY_DISTRICT_STATS = [
-  { district: "Приморский", ownersLabel: "210 владельцев" },
-  { district: "Центральный", ownersLabel: "142 владельца" },
-  { district: "Петроградский", ownersLabel: "89 владельцев" },
-  { district: "Василеостровский", ownersLabel: "74 владельца" },
-];
-
 export function toCommunityMapMarker(spot: CommunityMapSpot): MapMarker {
   return {
     id: spot.id,
     coordinates: spot.coordinates,
     title: spot.title,
+    badge: spot.badge,
     subtitle: spot.subtitle,
     color: spot.color,
     iconName: spot.iconName,
@@ -144,4 +146,48 @@ export function toCommunityMapMarker(spot: CommunityMapSpot): MapMarker {
 
 export function getCommunityCategoryMeta(category: Exclude<CommunityMapCategory, "all">) {
   return COMMUNITY_MAP_CATEGORIES.find((item) => item.id === category)!;
+}
+
+function pluralizeCount(
+  count: number,
+  forms: [string, string, string],
+) {
+  const absolute = Math.abs(count) % 100;
+  const lastDigit = absolute % 10;
+
+  if (absolute > 10 && absolute < 20) {
+    return forms[2];
+  }
+
+  if (lastDigit > 1 && lastDigit < 5) {
+    return forms[1];
+  }
+
+  if (lastDigit === 1) {
+    return forms[0];
+  }
+
+  return forms[2];
+}
+
+export function formatOwnersLabel(count: number) {
+  return `${count} ${pluralizeCount(count, ["владелец", "владельца", "владельцев"])}`;
+}
+
+export function formatPointsLabel(count: number) {
+  return `${count} ${pluralizeCount(count, ["точка", "точки", "точек"])}`;
+}
+
+export function buildCommunityDistrictStat(
+  district: string,
+  ownersCount: number,
+  pointsCount: number,
+): CommunityMapDistrictStat {
+  return {
+    district,
+    ownersCount,
+    pointsCount,
+    ownersLabel: formatOwnersLabel(ownersCount),
+    pointsLabel: formatPointsLabel(pointsCount),
+  };
 }

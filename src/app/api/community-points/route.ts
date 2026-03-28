@@ -4,8 +4,10 @@ import { NextResponse } from "next/server";
 import { createAdminClient, createSessionClient } from "@/lib/server/appwrite";
 import {
   COMMUNITY_MAP_SPOTS,
+  buildCommunityDistrictStat,
   getCommunityCategoryMeta,
   type CommunityMapCategory,
+  type CommunityMapDistrictStat,
   type CommunityMapSpot,
 } from "@/lib/map-spots";
 
@@ -30,6 +32,11 @@ type CommunityPointDocument = {
   author_name?: string;
   author_avatar_url?: string;
   author_is_admin?: boolean;
+};
+
+type OwnerDistrictDocument = {
+  $id: string;
+  district?: string;
 };
 
 function buildSpotFromDocument(document: CommunityPointDocument): CommunityMapSpot | null {
@@ -103,23 +110,143 @@ async function getViewer() {
   }
 }
 
+async function listAllCommunityPointDocuments() {
+  const { databases } = await createAdminClient();
+  const documents: CommunityPointDocument[] = [];
+  let cursor: string | undefined;
+
+  while (true) {
+    const queries = [Query.orderDesc("$createdAt"), Query.limit(100)];
+
+    if (cursor) {
+      queries.push(Query.cursorAfter(cursor));
+    }
+
+    const response = await databases.listDocuments(
+      DB_ID,
+      COMMUNITY_POINTS_COLLECTION,
+      queries,
+    );
+
+    const batch = response.documents as unknown as CommunityPointDocument[];
+    documents.push(...batch);
+
+    if (batch.length < 100) {
+      break;
+    }
+
+    cursor = batch[batch.length - 1]?.$id;
+
+    if (!cursor) {
+      break;
+    }
+  }
+
+  return documents;
+}
+
+async function listOwnerDistrictCounts() {
+  const { databases } = await createAdminClient();
+  const counts = new Map<string, number>();
+  let cursor: string | undefined;
+
+  while (true) {
+    const queries = [Query.orderDesc("$createdAt"), Query.limit(100)];
+
+    if (cursor) {
+      queries.push(Query.cursorAfter(cursor));
+    }
+
+    const response = await databases.listDocuments(DB_ID, USERS_COLLECTION, queries);
+    const batch = response.documents as unknown as OwnerDistrictDocument[];
+
+    batch.forEach((document) => {
+      const district = String(document.district || "").trim();
+
+      if (!district) {
+        return;
+      }
+
+      counts.set(district, (counts.get(district) || 0) + 1);
+    });
+
+    if (batch.length < 100) {
+      break;
+    }
+
+    cursor = batch[batch.length - 1]?.$id;
+
+    if (!cursor) {
+      break;
+    }
+  }
+
+  return counts;
+}
+
+function buildDistrictStats(
+  points: CommunityMapSpot[],
+  ownerDistrictCounts: Map<string, number>,
+): CommunityMapDistrictStat[] {
+  const pointDistrictCounts = new Map<string, number>();
+
+  points.forEach((point) => {
+    const district = String(point.district || "").trim();
+
+    if (!district) {
+      return;
+    }
+
+    pointDistrictCounts.set(district, (pointDistrictCounts.get(district) || 0) + 1);
+  });
+
+  const districts = Array.from(
+    new Set([
+      ...Array.from(ownerDistrictCounts.keys()),
+      ...Array.from(pointDistrictCounts.keys()),
+    ]),
+  );
+
+  return districts
+    .map((district) =>
+      buildCommunityDistrictStat(
+        district,
+        ownerDistrictCounts.get(district) || 0,
+        pointDistrictCounts.get(district) || 0,
+      ),
+    )
+    .sort((left, right) => {
+      if (right.ownersCount !== left.ownersCount) {
+        return right.ownersCount - left.ownersCount;
+      }
+
+      if (right.pointsCount !== left.pointsCount) {
+        return right.pointsCount - left.pointsCount;
+      }
+
+      return left.district.localeCompare(right.district, "ru");
+    });
+}
+
 export async function GET() {
   const viewer = await getViewer();
 
   try {
-    const { databases } = await createAdminClient();
-    const response = await databases.listDocuments(DB_ID, COMMUNITY_POINTS_COLLECTION, [
-      Query.orderDesc("$createdAt"),
-      Query.limit(100),
+    const [pointDocuments, ownerDistrictCounts] = await Promise.all([
+      listAllCommunityPointDocuments(),
+      listOwnerDistrictCounts(),
     ]);
 
-    const dynamicPoints = response.documents
+    const dynamicPoints = pointDocuments
       .map((document) => buildSpotFromDocument(document as unknown as CommunityPointDocument))
       .filter(Boolean) as CommunityMapSpot[];
 
+    const allPoints = [...dynamicPoints, ...COMMUNITY_MAP_SPOTS];
+
     return NextResponse.json({
       viewer,
-      points: [...dynamicPoints, ...COMMUNITY_MAP_SPOTS],
+      points: allPoints,
+      districtStats: buildDistrictStats(allPoints, ownerDistrictCounts),
     });
   } catch (error) {
     console.error("Community points load failed", error);
@@ -127,6 +254,7 @@ export async function GET() {
     return NextResponse.json({
       viewer,
       points: COMMUNITY_MAP_SPOTS,
+      districtStats: buildDistrictStats(COMMUNITY_MAP_SPOTS, new Map()),
     });
   }
 }

@@ -15,7 +15,7 @@ export default function Home() {
   };
 
   return (
-    <>
+    <div className="pt-24">
       {/* Community Alerts: Лапки на пульсе */}
       <section className="bg-primary-container/10 border-b border-primary/10 py-3 px-6 overflow-hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-6 whitespace-nowrap text-sm font-bold text-primary">
@@ -289,6 +289,6 @@ export default function Home() {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       ` }} />
-    </>
+    </div>
   );
 }

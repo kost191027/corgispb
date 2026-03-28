@@ -9,6 +9,7 @@ import {
   type CommunityMapCategory,
   toCommunityMapMarker,
 } from "@/lib/map-spots";
+import { incrementCommunityMapClickCount } from "@/lib/community-map-clicks";
 import { useCommunityMapData } from "@/components/map/useCommunityMapData";
 
 function SpotAuthorMeta({
@@ -75,10 +76,14 @@ export function HomeCommunityMapSection() {
       <div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-12 lg:items-center">
         <div className="order-2 h-full min-h-[400px] lg:col-span-7 lg:order-1">
           <ClientYandexMap
+            activeMarkerId={selectedSpot?.id ?? null}
             enableClustering
             markers={markers}
             loadingLabel="Подгружаем карту прогулок..."
-            onMarkerClick={(marker) => setSelectedSpotId(marker.id)}
+            onMarkerClick={(marker) => {
+              incrementCommunityMapClickCount(marker.id);
+              setSelectedSpotId(marker.id);
+            }}
           />
         </div>
 

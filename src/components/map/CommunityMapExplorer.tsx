@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClientYandexMap } from "@/components/map/ClientYandexMap";
 import {
-  COMMUNITY_DISTRICT_STATS,
   COMMUNITY_MAP_CATEGORIES,
   type CommunityMapCategory,
   toCommunityMapMarker,
 } from "@/lib/map-spots";
+import {
+  incrementCommunityMapClickCount,
+  readCommunityMapClickCounts,
+  type CommunityMapClickCounts,
+} from "@/lib/community-map-clicks";
 import { useCommunityMapData } from "@/components/map/useCommunityMapData";
 
 function SpotAuthorMeta({
@@ -32,9 +36,6 @@ function SpotAuthorMeta({
           <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
             pets
           </span>
-          <span className="material-symbols-outlined absolute -right-1 -top-1 text-[12px]">
-            verified
-          </span>
         </span>
         Администратор
       </div>
@@ -53,10 +54,15 @@ function SpotAuthorMeta({
 }
 
 export function CommunityMapExplorer() {
-  const { points } = useCommunityMapData();
+  const { points, districtStats } = useCommunityMapData();
   const [selectedCategory, setSelectedCategory] = useState<CommunityMapCategory>("all");
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [selectedSpotId, setSelectedSpotId] = useState("");
+  const [clickCounts, setClickCounts] = useState<CommunityMapClickCounts>({});
+
+  useEffect(() => {
+    setClickCounts(readCommunityMapClickCounts());
+  }, []);
 
   const filteredSpots = useMemo(() => {
     return points.filter((spot) => {
@@ -74,9 +80,28 @@ export function CommunityMapExplorer() {
     null;
 
   const markers = useMemo(() => filteredSpots.map(toCommunityMapMarker), [filteredSpots]);
+  const activeSpots = useMemo(() => {
+    return [...filteredSpots]
+      .sort((left, right) => {
+        const rightCount = clickCounts[right.id] || 0;
+        const leftCount = clickCounts[left.id] || 0;
+
+        if (rightCount !== leftCount) {
+          return rightCount - leftCount;
+        }
+
+        return left.title.localeCompare(right.title, "ru");
+      })
+      .slice(0, 7);
+  }, [clickCounts, filteredSpots]);
+
+  function handleMapMarkerClick(spotId: string) {
+    setSelectedSpotId(spotId);
+    setClickCounts(incrementCommunityMapClickCount(spotId));
+  }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-6 py-12">
+    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-6 pb-12 pt-28">
       <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-tertiary-container/30 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-on-tertiary-container">
@@ -98,30 +123,43 @@ export function CommunityMapExplorer() {
       <section className="mb-8 flex flex-col gap-12 md:flex-row md:items-start">
         <div className="w-full space-y-6 md:w-1/3">
           <p className="leading-relaxed text-on-surface-variant">
-            Найдите единомышленников в своём районе. Мы перенесли в карту основные точки сообщества и сделали единый слой данных для дальнейших доработок.
+            Выберите район и сразу увидите, где уже есть свои: мы учитываем и владельцев корги, и отмеченные на карте места для прогулок, встреч и дог-френдли остановок.
           </p>
-          <div className="space-y-3">
-            {COMMUNITY_DISTRICT_STATS.map((district) => {
-              const isActive = selectedDistrict === district.district;
+          <div className="max-h-[29rem] space-y-3 overflow-y-auto pr-1 md:max-h-[504px]">
+            {districtStats.map((districtStat) => {
+              const isActive = selectedDistrict === districtStat.district;
 
               return (
                 <button
-                  key={district.district}
-                  className={`flex w-full items-center justify-between rounded-lg p-4 text-left transition-colors ${
+                  key={districtStat.district}
+                  className={`flex min-h-[74px] w-full items-center justify-between gap-3 rounded-[1.35rem] p-4 text-left transition-colors ${
                     isActive
-                      ? "border-l-4 border-primary bg-surface-container-low"
+                      ? "border-l-4 border-primary bg-surface-container-low shadow-sm"
                       : "bg-surface-container-lowest hover:bg-surface-container"
                   }`}
                   onClick={() =>
                     setSelectedDistrict((current) =>
-                      current === district.district ? null : district.district,
+                      current === districtStat.district ? null : districtStat.district,
                     )
                   }
                   type="button"
                 >
-                  <span className={isActive ? "font-bold" : "font-medium"}>{district.district}</span>
-                  <span className={`rounded-full px-2 py-1 text-xs ${isActive ? "bg-primary/10 font-bold text-primary" : "bg-stone-100 text-stone-500"}`}>
-                    {district.ownersLabel}
+                  <div className="min-w-0">
+                    <p className={`truncate ${isActive ? "font-bold text-on-surface" : "font-medium text-on-surface"}`}>
+                      {districtStat.district}
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-on-surface-variant">
+                      {districtStat.pointsLabel} на карте
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${
+                      isActive
+                        ? "bg-primary/10 font-bold text-primary"
+                        : "bg-stone-100 text-stone-500"
+                    }`}
+                  >
+                    {districtStat.ownersLabel}
                   </span>
                 </button>
               );
@@ -131,11 +169,12 @@ export function CommunityMapExplorer() {
 
         <div className="h-[520px] w-full md:w-2/3">
           <ClientYandexMap
+            activeMarkerId={selectedSpot?.id ?? null}
             height="520px"
             enableClustering
             loadingLabel="Открываем полную карту прогулок..."
             markers={markers}
-            onMarkerClick={(marker) => setSelectedSpotId(marker.id)}
+            onMarkerClick={(marker) => handleMapMarkerClick(marker.id)}
           />
         </div>
       </section>
@@ -182,7 +221,7 @@ export function CommunityMapExplorer() {
             <span className="material-symbols-outlined text-primary">groups</span>
             Активные точки
           </h3>
-          {filteredSpots.map((spot) => {
+          {activeSpots.map((spot) => {
             const isActive = selectedSpot?.id === spot.id;
 
             return (

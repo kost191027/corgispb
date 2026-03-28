@@ -15,6 +15,7 @@ export interface MapMarker {
   id: string;
   coordinates: [number, number]; // [lng, lat]
   title: string;
+  badge?: string;
   subtitle?: string;
   color?: "red" | "green" | "blue" | "orange" | "teal";
   iconName?: string;
@@ -29,6 +30,7 @@ export interface YandexMapProps {
   height?: string;
   markerVariant?: "pin" | "paw";
   enableClustering?: boolean;
+  activeMarkerId?: string | null;
   onMarkerClick?: (marker: MapMarker) => void;
   onMapClick?: (coordinates: [number, number]) => void;
   onMarkerDrag?: (marker: MapMarker, coordinates: [number, number]) => void;
@@ -134,9 +136,12 @@ function loadYmapsScript(apiKey: string): Promise<void> {
 }
 
 function createPinMarkerElement(marker: MapMarker) {
-  const el = document.createElement("div");
+  const el = document.createElement("button");
+  const bubble = document.createElement("div");
+  const icon = document.createElement("span");
   const iconName = marker.iconName ?? "location_on";
   el.style.cssText = `
+    position: relative;
     width: 36px;
     height: 36px;
     background: ${MARKER_COLORS[marker.color || "orange"]};
@@ -149,22 +154,74 @@ function createPinMarkerElement(marker: MapMarker) {
     justify-content: center;
     transition: transform 0.2s;
     transform: translate(-50%, -50%) scale(1);
+    padding: 0;
+    appearance: none;
   `;
   if (marker.draggable) {
     el.style.touchAction = "none";
     el.style.cursor = "grab";
   }
-  el.innerHTML =
-    `<span style="color:white;font-size:16px;font-family:'Material Symbols Outlined';font-variation-settings:'FILL' 1">${iconName}</span>`;
+  bubble.style.cssText = `
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    min-width: 140px;
+    max-width: 220px;
+    transform: translate(-50%, 8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+    border-radius: 18px;
+    background: rgba(255,250,245,0.98);
+    color: #241b16;
+    box-shadow: 0 18px 38px rgba(36,27,22,0.16);
+    padding: 10px 12px;
+    text-align: left;
+  `;
+  bubble.innerHTML = `
+    <div style="font-size:11px;font-weight:900;letter-spacing:0.16em;text-transform:uppercase;color:#ee7e0a;">${marker.badge || "Точка на карте"}</div>
+    <div style="margin-top:4px;font-size:13px;line-height:1.3;font-weight:800;color:#241b16;">${marker.title}</div>
+  `;
+
+  icon.style.cssText =
+    "color:white;font-size:16px;font-family:'Material Symbols Outlined';font-variation-settings:'FILL' 1";
+  icon.textContent = iconName;
+
+  el.appendChild(bubble);
+  el.appendChild(icon);
   el.title = marker.title;
   el.onmouseenter = () => {
-    el.style.transform = "translate(-50%, -50%) scale(1.2)";
+    if (el.dataset.previewOpen === "true") {
+      el.style.transform = "translate(-50%, calc(-50% - 2px)) scale(1.12)";
+      return;
+    }
+
+    el.style.transform = "translate(-50%, -50%) scale(1.12)";
   };
   el.onmouseleave = () => {
+    if (el.dataset.previewOpen === "true") {
+      el.style.transform = "translate(-50%, calc(-50% - 2px)) scale(1.12)";
+      return;
+    }
+
     el.style.transform = "translate(-50%, -50%) scale(1)";
   };
 
-  return el;
+  return {
+    element: el,
+    openPreview: () => {
+      el.dataset.previewOpen = "true";
+      el.style.transform = "translate(-50%, calc(-50% - 2px)) scale(1.12)";
+      bubble.style.opacity = "1";
+      bubble.style.transform = "translate(-50%, 0)";
+    },
+    closePreview: () => {
+      el.dataset.previewOpen = "false";
+      el.style.transform = "translate(-50%, -50%) scale(1)";
+      bubble.style.opacity = "0";
+      bubble.style.transform = "translate(-50%, 8px)";
+    },
+  };
 }
 
 function createPawMarkerElement(marker: MapMarker) {
@@ -356,6 +413,7 @@ export function YandexMap({
   height = "500px",
   markerVariant = "pin",
   enableClustering = false,
+  activeMarkerId = null,
   onMarkerClick,
   onMapClick,
   onMarkerDragEnd,
@@ -390,6 +448,7 @@ export function YandexMap({
       const map = new YMap(mapHost.current, {
         location: { center, zoom },
       });
+      let closeActivePinPreview: (() => void) | null = null;
 
       map.addChild(new YMapDefaultSchemeLayer({}));
       map.addChild(new YMapDefaultFeaturesLayer({}));
@@ -475,20 +534,32 @@ export function YandexMap({
             const clusterMarker = feature.properties?.marker;
 
             if (!clusterMarker) {
+              const fallbackMarker = createPinMarkerElement({
+                id: String(Math.random()),
+                coordinates: feature.geometry.coordinates,
+                title: "Точка на карте",
+              });
+
               return new YMapMarker(
                 {
                   coordinates: feature.geometry.coordinates,
                   source: CLUSTERER_SOURCE_ID,
                 },
-                createPinMarkerElement({
-                  id: String(Math.random()),
-                  coordinates: feature.geometry.coordinates,
-                  title: "Точка на карте",
-                }),
+                fallbackMarker.element,
               );
             }
 
-            const element = createPinMarkerElement(clusterMarker);
+            const pinMarker = createPinMarkerElement(clusterMarker);
+            const element = pinMarker.element;
+            element.addEventListener("click", () => {
+              closeActivePinPreview?.();
+              pinMarker.openPreview();
+              closeActivePinPreview = pinMarker.closePreview;
+            });
+            if (activeMarkerId === clusterMarker.id) {
+              pinMarker.openPreview();
+              closeActivePinPreview = pinMarker.closePreview;
+            }
             if (onMarkerClick) {
               element.addEventListener("click", () => onMarkerClick(clusterMarker));
             }
@@ -527,10 +598,24 @@ export function YandexMap({
         map.addChild(clusterer);
       } else {
         markers.forEach((marker) => {
+          const pinMarker =
+            markerVariant === "paw" ? null : createPinMarkerElement(marker);
           const element =
             markerVariant === "paw"
               ? createPawMarkerElement(marker)
-              : createPinMarkerElement(marker);
+              : pinMarker!.element;
+
+          if (pinMarker) {
+            element.addEventListener("click", () => {
+              closeActivePinPreview?.();
+              pinMarker.openPreview();
+              closeActivePinPreview = pinMarker.closePreview;
+            });
+            if (activeMarkerId === marker.id) {
+              pinMarker.openPreview();
+              closeActivePinPreview = pinMarker.closePreview;
+            }
+          }
 
           if (onMarkerClick) {
             element.addEventListener("click", () => onMarkerClick(marker));
@@ -566,6 +651,7 @@ export function YandexMap({
     apiKey,
     center,
     enableClustering,
+    activeMarkerId,
     markerVariant,
     markers,
     onMapClick,
