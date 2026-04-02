@@ -92,15 +92,72 @@ export const MEETINGS: MeetingRecord[] = [
   },
 ];
 
-export const MEETING_DISTRICTS = [
-  "Все районы",
-  ...Array.from(new Set(MEETINGS.map((meeting) => meeting.district))),
-];
+export function getMeetingAccent(type: string): MeetingRecord["accent"] {
+  const normalized = type.trim().toLowerCase();
 
-export const MEETING_TYPES = [
-  "Все",
-  ...Array.from(new Set(MEETINGS.map((meeting) => meeting.type))),
-];
+  if (
+    normalized.includes("пикник") ||
+    normalized.includes("уход") ||
+    normalized.includes("обуч")
+  ) {
+    return "teal";
+  }
+
+  if (normalized.includes("игр") || normalized.includes("маркет")) {
+    return "green";
+  }
+
+  return "orange";
+}
+
+export function formatMeetingDateLabel(eventDate: string) {
+  const date = new Date(eventDate);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Скоро";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+  }).format(date);
+}
+
+export function formatMeetingTimeLabel(eventDate: string) {
+  const date = new Date(eventDate);
+
+  if (Number.isNaN(date.getTime())) {
+    return "--:--";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+export function buildMeetingCapacityLabel(maxParticipants?: number | null) {
+  if (!maxParticipants || maxParticipants <= 0) {
+    return "Мест: много";
+  }
+
+  if (maxParticipants <= 12) {
+    return `Осталось ${maxParticipants} мест`;
+  }
+
+  return `До ${maxParticipants} участников`;
+}
+
+export function getMeetingDistricts(meetings: MeetingRecord[]) {
+  return ["Все районы", ...Array.from(new Set(meetings.map((meeting) => meeting.district)))];
+}
+
+export function getMeetingTypes(meetings: MeetingRecord[]) {
+  return ["Все", ...Array.from(new Set(meetings.map((meeting) => meeting.type)))];
+}
+
+export const MEETING_DISTRICTS = getMeetingDistricts(MEETINGS);
+export const MEETING_TYPES = getMeetingTypes(MEETINGS);
 
 export function getMeetingAccentClasses(accent: MeetingRecord["accent"]) {
   switch (accent) {
@@ -130,5 +187,55 @@ export function toMeetingMapMarker(meeting: MeetingRecord): MapMarker {
     badge: meeting.type,
     subtitle: `${meeting.dateLabel}, ${meeting.timeLabel}`,
     color: meeting.accent,
+  };
+}
+
+export type MeetingApiDocument = {
+  id: string;
+  title: string;
+  district: string;
+  type: string;
+  location: string;
+  eventDate: string;
+  participants?: number;
+  maxParticipants?: number | null;
+  description: string;
+  imageUrl?: string;
+  latitude: number;
+  longitude: number;
+};
+
+export function getMeetingFallbackImage(type: string) {
+  const normalized = type.trim().toLowerCase();
+
+  if (normalized.includes("пикник")) {
+    return "https://lh3.googleusercontent.com/aida-public/AB6AXuAdBHgdTvd-o0nb5XDFfydbsDpMaae2UkzhBMsJGVPltW_t5Vksl8LkS_XJnFutr5y0ce4_JffFnEVNh4M4sCpMVkVHdLQG8mSroc8DxSo4r3URXE7R_jrIlXFFwtTxkHEsfbyH5qrE0FhPdfmVIyyz8X6pdVSfWhlFh5vLKOfe32c7pVxn3Ic7BnfDo-jgvs4Sl2FFFglLUxVacKuSJmhmyotFzdHyAS_slynUXzXixQXZjcXzhUdKFnt9tROlodDTPyloP0zvxe0";
+  }
+
+  if (normalized.includes("уход") || normalized.includes("обуч")) {
+    return "https://lh3.googleusercontent.com/aida-public/AB6AXuCS4FGXFPm-B6JnSMSWHPp6SuHYWo5zgbV8pV0Ks3dUeykStfgWQBTdP3kOz5SslDgghwNBcLrW092hIfZAVFNyloTHZu6HIQdKi_k7s-Kcfg0G038PQWIqZxuF-pBDcgqdmUiEoltLeNlx5VUb0NwVZGdsybvuFTnuRY_jjwzdHNWUZ5qV-EO2eBpU1GToACQBFdsD2FZEESZsrogp-7KmhqY9KZtMIeROw_2i05AkEIszopKtnwV2tHh8O4fzETVegQ6P4DPH5eQ";
+  }
+
+  return "https://lh3.googleusercontent.com/aida-public/AB6AXuDdybnthR7L5akZsj_bzfQa2-b6ABhTsY0j0wd-pg5byWErOq5kE6Iplfc6-r7K1f31v8UBAbOR_Av5YoN7ODDcIubtD0IWe6vVUBDRKZxW6UEp31Kp9yk5WhPj6AslV8u3A-W5QqM3R1zCnQxHV9C6R3Wf3DDHpI-Z1PdRA1tSnA1lPpI1V4QcL9M6p8G6txFipg3BB86cMZQ8Xo27D6tE7QclvvQf3r2rQ3Yt5J6r78oDhO7o78cDdzZmbmI0nY7lud8qgD6d";
+}
+
+export function mapMeetingApiDocument(document: MeetingApiDocument): MeetingRecord {
+  const accent = getMeetingAccent(document.type);
+
+  return {
+    id: document.id,
+    title: document.title,
+    district: document.district,
+    type: document.type,
+    location: document.location,
+    eventDate: document.eventDate,
+    dateLabel: formatMeetingDateLabel(document.eventDate),
+    timeLabel: formatMeetingTimeLabel(document.eventDate),
+    participants: document.participants || 0,
+    capacityLabel: buildMeetingCapacityLabel(document.maxParticipants),
+    description: document.description,
+    imageUrl: document.imageUrl || getMeetingFallbackImage(document.type),
+    coordinates: [document.longitude, document.latitude],
+    accent,
   };
 }

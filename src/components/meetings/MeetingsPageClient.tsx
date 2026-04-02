@@ -3,26 +3,41 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { SaveMeetingButton } from "@/components/cabinet/SaveMeetingButton";
 import { ClientYandexMap } from "@/components/map/ClientYandexMap";
+import { AddMeetingModal } from "@/components/meetings/AddMeetingModal";
+import { useMeetingsData } from "@/components/meetings/useMeetingsData";
 import type { MapMarker } from "@/components/map/YandexMap";
 import { APP_SELECT_CLASS, APP_SELECT_ICON_WRAPPER_CLASS } from "@/lib/forms";
 import {
-  MEETINGS,
-  MEETING_DISTRICTS as DISTRICTS,
-  MEETING_TYPES as TYPES,
+  getMeetingDistricts,
+  getMeetingTypes,
   getMeetingAccentClasses as getAccentClasses,
+  type MeetingRecord,
   toMeetingMapMarker,
 } from "@/lib/meetings";
 
-export function MeetingsPageClient() {
+type MeetingsPageClientProps = {
+  viewer: {
+    id: string;
+    name: string;
+    district?: string;
+    avatarUrl?: string | null;
+  } | null;
+};
+
+export function MeetingsPageClient({ viewer }: MeetingsPageClientProps) {
   const [search, setSearch] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("Все районы");
   const [selectedType, setSelectedType] = useState("Все");
+  const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
+  const { meetings, setMeetings } = useMeetingsData();
+  const districts = useMemo(() => getMeetingDistricts(meetings), [meetings]);
+  const types = useMemo(() => getMeetingTypes(meetings), [meetings]);
 
   const filteredMeetings = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase();
 
-    return MEETINGS.filter((meeting) => {
+    return meetings.filter((meeting) => {
       const matchesSearch =
         query.length === 0 ||
         [meeting.title, meeting.location, meeting.description, meeting.district]
@@ -34,7 +49,7 @@ export function MeetingsPageClient() {
 
       return matchesSearch && matchesDistrict && matchesType;
     }).sort((a, b) => a.eventDate.localeCompare(b.eventDate));
-  }, [deferredSearch, selectedDistrict, selectedType]);
+  }, [deferredSearch, meetings, selectedDistrict, selectedType]);
 
   const featuredMeeting = filteredMeetings[0] ?? null;
   const secondaryMeetings = filteredMeetings.slice(1);
@@ -49,6 +64,29 @@ export function MeetingsPageClient() {
     setSelectedDistrict("Все районы");
     setSelectedType("Все");
   };
+
+  async function handleCreateMeeting(formData: FormData) {
+    const response = await fetch("/api/meetings", {
+      method: "POST",
+      body: formData,
+    });
+
+    const payload = (await response.json()) as {
+      ok?: boolean;
+      message?: string;
+      meeting?: MeetingRecord | null;
+    };
+
+    if (!response.ok || !payload.ok || !payload.meeting) {
+      throw new Error(payload.message || "Не удалось сохранить событие.");
+    }
+
+    setMeetings((currentMeetings) =>
+      [...currentMeetings, payload.meeting as MeetingRecord].sort((left, right) =>
+        left.eventDate.localeCompare(right.eventDate),
+      ),
+    );
+  }
 
   return (
     <main className="pt-24 pb-32">
@@ -111,7 +149,7 @@ export function MeetingsPageClient() {
                   onChange={(event) => setSelectedDistrict(event.target.value)}
                   value={selectedDistrict}
                 >
-                  {DISTRICTS.map((district) => (
+                  {districts.map((district) => (
                     <option key={district} value={district}>
                       {district}
                     </option>
@@ -128,7 +166,7 @@ export function MeetingsPageClient() {
                 Тип встречи
               </label>
               <div className="flex flex-wrap gap-2">
-                {TYPES.map((type) => {
+                {types.map((type) => {
                   const isActive = selectedType === type;
 
                   return (
@@ -164,16 +202,6 @@ export function MeetingsPageClient() {
       </section>
 
       <section className="mx-auto mb-20 max-w-7xl px-6 font-body">
-        <div className="mb-8 flex items-end justify-between">
-          <div>
-            <span className="text-sm font-bold uppercase tracking-tight text-primary">Предстоящие</span>
-            <h2 className="text-3xl font-extrabold text-on-surface">Ближайшие встречи</h2>
-          </div>
-          <p className="hidden text-sm text-on-surface-variant md:block">
-            Карточки и карта показывают один и тот же отфильтрованный набор.
-          </p>
-        </div>
-
         {!featuredMeeting ? (
           <div className="rounded-[2rem] border border-dashed border-outline-variant/40 bg-surface-container-low px-8 py-16 text-center">
             <h3 className="mb-3 text-2xl font-black text-on-surface">Ничего не нашли по этим фильтрам</h3>
@@ -189,67 +217,105 @@ export function MeetingsPageClient() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
-            <article className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl md:col-span-7">
-              <div className="relative h-64 shrink-0 overflow-hidden md:h-80">
-                <img
-                  alt={featuredMeeting.title}
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  crossOrigin="anonymous"
-                  src={featuredMeeting.imageUrl}
-                />
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-12 md:items-start">
+            <div className="flex w-full flex-col gap-4 md:col-span-6 self-start">
+              <div className="min-h-[74px]">
+                <span className="text-sm font-bold uppercase tracking-tight text-primary">
+                  Предстоящие
+                </span>
+                <h2 className="text-3xl font-extrabold text-on-surface">
+                  Ближайшие встречи
+                </h2>
               </div>
-              <div className="flex flex-1 flex-col p-8">
-                <div className="mb-5 flex flex-wrap items-center gap-3">
-                  <span className="rounded-full bg-primary/10 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-primary">
-                    {featuredMeeting.dateLabel}
-                  </span>
-                  <span className="rounded-full bg-green-100 px-4 py-1.5 text-xs font-bold text-green-800">
-                    {featuredMeeting.capacityLabel}
-                  </span>
-                  <span className="rounded-full bg-surface-container px-4 py-1.5 text-xs font-bold text-on-surface-variant">
-                    {featuredMeeting.type}
-                  </span>
-                </div>
-                <h3 className="mb-4 text-3xl font-black leading-tight text-on-surface">{featuredMeeting.title}</h3>
-                <div className="mb-6 flex flex-wrap gap-4 text-sm font-medium text-on-surface-variant">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-xl text-primary">location_on</span>
-                    {featuredMeeting.location}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-xl text-primary">schedule</span>
-                    {featuredMeeting.timeLabel}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-xl text-primary">group</span>
-                    {featuredMeeting.participants} участника
-                  </div>
-                </div>
-                <p className="mt-2 flex-1 text-on-surface-variant">{featuredMeeting.description}</p>
-                <div className="mt-6 grid gap-3 md:grid-cols-2">
-                  <button
-                    className="rounded-full bg-primary py-4 font-bold text-on-primary transition-colors active:scale-95 hover:bg-primary-container hover:text-on-primary-container"
-                    type="button"
-                  >
-                    Я пойду
-                  </button>
-                  <SaveMeetingButton
-                    className="w-full rounded-full bg-white py-4 font-bold text-primary transition-colors hover:bg-primary-fixed"
-                    event={{
-                      id: featuredMeeting.id,
-                      title: featuredMeeting.title,
-                      eventDate: featuredMeeting.eventDate,
-                      location: featuredMeeting.location,
-                      type: featuredMeeting.type,
-                      description: featuredMeeting.description,
-                    }}
+
+              <article className="group flex w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-lowest shadow-sm transition-all duration-300 hover:shadow-xl self-start">
+                <div className="relative h-64 shrink-0 overflow-hidden md:h-80">
+                  <img
+                    alt={featuredMeeting.title}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    crossOrigin="anonymous"
+                    src={featuredMeeting.imageUrl}
                   />
                 </div>
-              </div>
-            </article>
+                <div className="flex flex-col p-8">
+                  <div className="mb-5 flex flex-wrap items-center gap-3">
+                    <span className="rounded-full bg-primary/10 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-primary">
+                      {featuredMeeting.dateLabel}
+                    </span>
+                    <span className="rounded-full bg-green-100 px-4 py-1.5 text-xs font-bold text-green-800">
+                      {featuredMeeting.capacityLabel}
+                    </span>
+                    <span className="rounded-full bg-surface-container px-4 py-1.5 text-xs font-bold text-on-surface-variant">
+                      {featuredMeeting.type}
+                    </span>
+                  </div>
+                  <h3 className="mb-4 text-3xl font-black leading-tight text-on-surface">{featuredMeeting.title}</h3>
+                  <div className="mb-6 flex flex-wrap gap-4 text-sm font-medium text-on-surface-variant">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-xl text-primary">location_on</span>
+                      {featuredMeeting.location}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-xl text-primary">schedule</span>
+                      {featuredMeeting.timeLabel}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-xl text-primary">group</span>
+                      {featuredMeeting.participants} участника
+                    </div>
+                  </div>
+                  <p className="mt-2 max-w-2xl text-on-surface-variant">
+                    {featuredMeeting.description}
+                  </p>
+                  <div className="mt-6 grid gap-3 md:grid-cols-2">
+                    <button
+                      className="rounded-full bg-primary py-4 font-bold text-on-primary transition-colors active:scale-95 hover:bg-primary-container hover:text-on-primary-container"
+                      type="button"
+                    >
+                      Я пойду
+                    </button>
+                    <SaveMeetingButton
+                      className="w-full rounded-full bg-white py-4 font-bold text-primary transition-colors hover:bg-primary-fixed"
+                      event={{
+                        id: featuredMeeting.id,
+                        title: featuredMeeting.title,
+                        eventDate: featuredMeeting.eventDate,
+                        location: featuredMeeting.location,
+                        type: featuredMeeting.type,
+                        description: featuredMeeting.description,
+                      }}
+                    />
+                  </div>
+                </div>
+              </article>
+            </div>
 
-            <div className="flex flex-col gap-6 md:col-span-5">
+            <div className="flex flex-col gap-4 md:col-span-6 self-start">
+              <div className="flex min-h-[74px] items-start justify-between gap-4 pt-[0.1rem]">
+                <div>
+                  <span className="text-sm font-bold uppercase tracking-tight text-primary">
+                    Лента
+                  </span>
+                  <h2 className="text-3xl font-extrabold text-on-surface">
+                    Все события
+                  </h2>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-orange-600"
+                    onClick={() => setIsMeetingModalOpen(true)}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">add</span>
+                    Добавить событие
+                  </button>
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-on-surface-variant">
+                    {secondaryMeetings.length} в списке
+                  </span>
+                </div>
+              </div>
+
+              <div className="max-h-[760px] space-y-4 overflow-y-auto pr-1">
               {secondaryMeetings.map((meeting) => {
                 const accent = getAccentClasses(meeting.accent);
 
@@ -302,26 +368,11 @@ export function MeetingsPageClient() {
                   </article>
                 );
               })}
-
-              <div className="relative flex flex-1 flex-col justify-center overflow-hidden rounded-xl bg-gradient-to-br from-tertiary to-teal-800 p-8 text-white shadow-lg">
-                <div className="relative z-10">
-                  <h3 className="mb-3 text-2xl font-bold">Больше встреч в Telegram</h3>
-                  <p className="mb-6 max-w-[220px] text-sm leading-relaxed text-white/90">
-                    Спонтанные прогулки и срочные сборы публикуем в чате раньше всего.
-                  </p>
-                  <a
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-tertiary transition-all hover:bg-tertiary-container hover:text-on-tertiary-container"
-                    href="#"
-                  >
-                    Присоединиться
-                  </a>
+              {secondaryMeetings.length > 5 ? (
+                <div className="rounded-xl bg-surface-container-low px-4 py-3 text-center text-sm font-medium text-on-surface-variant">
+                  Остальные события доступны ниже по скроллу и на карте встреч.
                 </div>
-                <span
-                  className="material-symbols-outlined pointer-events-none absolute -bottom-6 -right-6 text-9xl text-white/10"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  chat_bubble
-                </span>
+              ) : null}
               </div>
             </div>
           </div>
@@ -346,6 +397,13 @@ export function MeetingsPageClient() {
           />
         </div>
       </section>
+
+      <AddMeetingModal
+        isOpen={isMeetingModalOpen}
+        onClose={() => setIsMeetingModalOpen(false)}
+        onCreateMeeting={handleCreateMeeting}
+        viewer={viewer}
+      />
     </main>
   );
 }

@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AddCommunityGroupModal } from "@/components/community/AddCommunityGroupModal";
 import { ClientYandexMap } from "@/components/map/ClientYandexMap";
+import { AddMeetingModal } from "@/components/meetings/AddMeetingModal";
+import { useMeetingsData } from "@/components/meetings/useMeetingsData";
 import type { CommunityGroup } from "@/lib/community-groups";
 import type { OwnerProfileRecord } from "@/lib/owners";
 import {
-  MEETINGS,
-  MEETING_TYPES,
+  getMeetingTypes,
   getMeetingAccentClasses,
+  type MeetingRecord,
   toMeetingMapMarker,
 } from "@/lib/meetings";
 import { formatOwnersLabel, formatPointsLabel } from "@/lib/map-spots";
@@ -46,11 +48,13 @@ export function CommunityMeetingsExplorer({
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState("Все");
   const [selectedMeetingId, setSelectedMeetingId] = useState("");
+  const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [groups, setGroups] = useState<CommunityGroup[]>([]);
   const [joinedGroupIds, setJoinedGroupIds] = useState<string[]>([]);
   const [isGroupsLoading, setIsGroupsLoading] = useState(true);
   const [joiningGroupId, setJoiningGroupId] = useState<string | null>(null);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const { meetings, setMeetings } = useMeetingsData();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -104,7 +108,7 @@ export function CommunityMeetingsExplorer({
       ownerCounts.set(district, (ownerCounts.get(district) || 0) + 1);
     });
 
-    MEETINGS.forEach((meeting) => {
+    meetings.forEach((meeting) => {
       const district = String(meeting.district || "").trim();
 
       if (!district) {
@@ -136,10 +140,10 @@ export function CommunityMeetingsExplorer({
 
         return left.district.localeCompare(right.district, "ru");
       });
-  }, [owners]);
+  }, [meetings, owners]);
 
   const filteredMeetings = useMemo(() => {
-    return MEETINGS.filter((meeting) => {
+    return meetings.filter((meeting) => {
       const matchesDistrict =
         !selectedDistrict || meeting.district === selectedDistrict;
       const matchesType =
@@ -147,7 +151,7 @@ export function CommunityMeetingsExplorer({
 
       return matchesDistrict && matchesType;
     }).sort((left, right) => left.eventDate.localeCompare(right.eventDate));
-  }, [selectedDistrict, selectedType]);
+  }, [meetings, selectedDistrict, selectedType]);
 
   const selectedMeeting =
     filteredMeetings.find((meeting) => meeting.id === selectedMeetingId) ??
@@ -161,6 +165,7 @@ export function CommunityMeetingsExplorer({
   }, [filteredMeetings, selectedMeetingId]);
 
   const visibleDistricts = useMemo(() => districtStats.slice(0, 4), [districtStats]);
+  const meetingTypes = useMemo(() => getMeetingTypes(meetings), [meetings]);
   const markers = useMemo(
     () => filteredMeetings.map(toMeetingMapMarker),
     [filteredMeetings],
@@ -274,6 +279,30 @@ export function CommunityMeetingsExplorer({
     } finally {
       setJoiningGroupId(null);
     }
+  }
+
+  async function handleCreateMeeting(formData: FormData) {
+    const response = await fetch("/api/meetings", {
+      method: "POST",
+      body: formData,
+    });
+
+    const payload = (await response.json()) as {
+      ok?: boolean;
+      message?: string;
+      meeting?: MeetingRecord | null;
+    };
+
+    if (!response.ok || !payload.ok || !payload.meeting) {
+      throw new Error(payload.message || "Не удалось сохранить событие.");
+    }
+
+    setMeetings((currentMeetings) =>
+      [...currentMeetings, payload.meeting as MeetingRecord].sort((left, right) =>
+        left.eventDate.localeCompare(right.eventDate),
+      ),
+    );
+    setSelectedMeetingId(payload.meeting.id);
   }
 
   return (
@@ -401,7 +430,7 @@ export function CommunityMeetingsExplorer({
           >
             Все встречи
           </button>
-          {MEETING_TYPES.filter((type) => type !== "Все").map((type) => {
+          {meetingTypes.filter((type) => type !== "Все").map((type) => {
             const isActive = selectedType === type;
 
             return (
@@ -445,7 +474,7 @@ export function CommunityMeetingsExplorer({
             </h3>
 
             <div className="max-h-[33rem] space-y-4 overflow-y-auto pr-1">
-              {activeGroups.map((group, index) => {
+              {activeGroups.map((group) => {
                 const districtOwnersCount =
                   ownersCountByDistrict.get(group.district) || 0;
 
@@ -454,11 +483,6 @@ export function CommunityMeetingsExplorer({
                     key={group.id}
                     className="group relative overflow-hidden rounded-[1.75rem] bg-surface-container-low p-5 transition-shadow duration-300 hover:shadow-lg"
                   >
-                    {index === 0 ? (
-                      <div className="absolute right-4 top-4 rounded-full bg-error px-2 py-0.5 text-[10px] font-bold uppercase tracking-tighter text-white">
-                        Hot
-                      </div>
-                    ) : null}
                     <div className="mb-4 flex items-center gap-4">
                       <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm">
                         {group.imageUrl ? (
@@ -473,7 +497,7 @@ export function CommunityMeetingsExplorer({
                           </span>
                         )}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="mb-1 flex flex-wrap items-center gap-2">
                           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.14em] text-primary">
                             {group.district}
@@ -621,12 +645,22 @@ export function CommunityMeetingsExplorer({
                 </span>
                 Расписание встреч
               </h3>
-              <Link
-                className="text-sm font-bold text-primary hover:underline"
-                href="/meetings"
-              >
-                Весь календарь →
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-orange-600"
+                  onClick={() => setIsMeetingModalOpen(true)}
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[18px]">add</span>
+                  Добавить событие
+                </button>
+                <Link
+                  className="text-sm font-bold text-primary hover:underline"
+                  href="/meetings"
+                >
+                  Весь календарь →
+                </Link>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -694,6 +728,12 @@ export function CommunityMeetingsExplorer({
         isOpen={isGroupModalOpen}
         onClose={() => setIsGroupModalOpen(false)}
         onCreateGroup={handleCreateGroup}
+        viewer={viewer}
+      />
+      <AddMeetingModal
+        isOpen={isMeetingModalOpen}
+        onClose={() => setIsMeetingModalOpen(false)}
+        onCreateMeeting={handleCreateMeeting}
         viewer={viewer}
       />
     </main>

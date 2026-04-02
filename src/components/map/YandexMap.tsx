@@ -449,20 +449,51 @@ export function YandexMap({
         location: { center, zoom },
       });
       let closeActivePinPreview: (() => void) | null = null;
+      let activePreviewMarkerId: string | null = activeMarkerId ?? null;
+      let suppressNextMapClick = false;
+
+      const closePreview = () => {
+        closeActivePinPreview?.();
+        closeActivePinPreview = null;
+        activePreviewMarkerId = null;
+      };
+
+      const togglePreview = (
+        markerId: string,
+        pinMarker: { openPreview: () => void; closePreview: () => void },
+      ) => {
+        if (activePreviewMarkerId === markerId) {
+          closePreview();
+          return;
+        }
+
+        closePreview();
+        pinMarker.openPreview();
+        closeActivePinPreview = pinMarker.closePreview;
+        activePreviewMarkerId = markerId;
+      };
 
       map.addChild(new YMapDefaultSchemeLayer({}));
       map.addChild(new YMapDefaultFeaturesLayer({}));
 
-      if (onMapClick || onViewportChange) {
+      if (onMapClick || onViewportChange || markerVariant === "pin") {
         const mapListener = new YMapListener({
           layer: "any",
-          ...(onMapClick
+          ...((onMapClick || markerVariant === "pin")
             ? {
                 onClick: (
                   _object: unknown,
                   event: { coordinates?: [number, number] },
                 ) => {
+                  if (suppressNextMapClick) {
+                    suppressNextMapClick = false;
+                    return;
+                  }
+
+                  closePreview();
+
                   if (
+                    onMapClick &&
                     Array.isArray(event?.coordinates) &&
                     event.coordinates.length === 2
                   ) {
@@ -552,13 +583,13 @@ export function YandexMap({
             const pinMarker = createPinMarkerElement(clusterMarker);
             const element = pinMarker.element;
             element.addEventListener("click", () => {
-              closeActivePinPreview?.();
-              pinMarker.openPreview();
-              closeActivePinPreview = pinMarker.closePreview;
+              suppressNextMapClick = true;
+              togglePreview(clusterMarker.id, pinMarker);
             });
             if (activeMarkerId === clusterMarker.id) {
               pinMarker.openPreview();
               closeActivePinPreview = pinMarker.closePreview;
+              activePreviewMarkerId = clusterMarker.id;
             }
             if (onMarkerClick) {
               element.addEventListener("click", () => onMarkerClick(clusterMarker));
@@ -607,13 +638,13 @@ export function YandexMap({
 
           if (pinMarker) {
             element.addEventListener("click", () => {
-              closeActivePinPreview?.();
-              pinMarker.openPreview();
-              closeActivePinPreview = pinMarker.closePreview;
+              suppressNextMapClick = true;
+              togglePreview(marker.id, pinMarker);
             });
             if (activeMarkerId === marker.id) {
               pinMarker.openPreview();
               closeActivePinPreview = pinMarker.closePreview;
+              activePreviewMarkerId = marker.id;
             }
           }
 
