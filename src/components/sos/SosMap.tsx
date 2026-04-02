@@ -1,18 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { MapLoadingPlaceholder } from "@/components/map/MapLoadingPlaceholder";
+import { ClientYandexMap } from "@/components/map/ClientYandexMap";
 import type { MapMarker } from "@/components/map/YandexMap";
-
-const YandexMap = dynamic(
-  () => import("@/components/map/YandexMap").then((mod) => mod.YandexMap),
-  {
-    ssr: false,
-    loading: () => (
-      <MapLoadingPlaceholder label="Собираем карту SOS-объявлений..." />
-    ),
-  },
-);
 
 type SosMapProps = {
   markers: MapMarker[];
@@ -21,7 +10,8 @@ type SosMapProps = {
 
 export function SosMap({ markers, onMarkerClick }: SosMapProps) {
   return (
-    <YandexMap
+    <ClientYandexMap
+      loadingLabel="Собираем карту SOS-объявлений..."
       markers={markers}
       zoom={11}
       height="600px"

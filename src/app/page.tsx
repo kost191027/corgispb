@@ -1,28 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
-import { MapLoadingPlaceholder } from "@/components/map/MapLoadingPlaceholder";
-import type { MapMarker } from "@/components/map/YandexMap";
+import { HomeCommunityMapSection } from "@/components/map/HomeCommunityMapSection";
 import { useRef } from "react";
-
-const YandexMap = dynamic(
-  () => import("@/components/map/YandexMap").then((mod) => mod.YandexMap),
-  {
-    ssr: false,
-    loading: () => (
-      <MapLoadingPlaceholder label="Подгружаем карту прогулок..." />
-    ),
-  },
-);
-
-const MAIN_MAP_MARKERS: MapMarker[] = [
-  { id: "1", coordinates: [30.2596, 59.9714], title: "Парк 300-летия", subtitle: "Большая территория у залива", color: "green" },
-  { id: "2", coordinates: [30.3349, 59.9537], title: "Таврический сад", subtitle: "Вечерние прогулки", color: "green" },
-  { id: "3", coordinates: [30.3095, 59.9685], title: "Dog-friendly кафе «Лапки»", subtitle: "Петроградская", color: "orange" },
-  { id: "4", coordinates: [30.2987, 59.9278], title: "Юсуповский сад", subtitle: "Корги-пикники", color: "green" },
-  { id: "5", coordinates: [30.2867, 59.9567], title: "Кафе «Хвост и Усы»", subtitle: "В.О., 6-я линия", color: "orange" },
-];
 
 export default function Home() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -35,7 +15,7 @@ export default function Home() {
   };
 
   return (
-    <>
+    <div className="pt-24">
       {/* Community Alerts: Лапки на пульсе */}
       <section className="bg-primary-container/10 border-b border-primary/10 py-3 px-6 overflow-hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-6 whitespace-nowrap text-sm font-bold text-primary">
@@ -207,43 +187,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Map Section */}
-      <section className="px-6 py-24 bg-white" id="map">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-16 items-center">
-          <div className="lg:col-span-7 order-2 lg:order-1 h-full min-h-[400px]">
-            <YandexMap markers={MAIN_MAP_MARKERS} />
-          </div>
-          <div className="lg:col-span-5 order-1 lg:order-2">
-            <h2 className="text-4xl lg:text-5xl font-black font-display text-on-surface mb-8 leading-tight">Где погулять пушистым?</h2>
-            <p className="text-lg text-on-surface-variant mb-10 leading-relaxed">Мы отметили лучшие dog-friendly парки и уютные кофейни Санкт-Петербурга, где корги всегда рады.</p>
-            <div className="space-y-4">
-              <div className="flex items-center gap-5 p-5 rounded-[2rem] bg-surface-container-low hover:bg-white hover:shadow-xl transition-all cursor-pointer group border border-transparent hover:border-primary/10">
-                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:bg-primary transition-all">
-                  <span className="material-symbols-outlined text-primary group-hover:text-white transition-colors">park</span>
-                </div>
-                <div>
-                  <h4 className="font-black text-lg">Парки и сады</h4>
-                  <p className="text-sm text-on-surface-variant">Лучшие места для активных игр на свежем воздухе.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-5 p-5 rounded-[2rem] bg-surface-container-low hover:bg-white hover:shadow-xl transition-all cursor-pointer group border border-transparent hover:border-primary/10">
-                <div className="w-14 h-14 rounded-full bg-[rgba(252,212,0,0.2)] flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:bg-[rgba(252,212,0,1)] transition-all">
-                  <span className="material-symbols-outlined text-secondary group-hover:text-on-secondary-container transition-colors">coffee</span>
-                </div>
-                <div>
-                  <h4 className="font-black text-lg">Dog-friendly кафе</h4>
-                  <p className="text-sm text-on-surface-variant">Где можно выпить кофе, пока ваш корги отдыхает рядом.</p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-8">
-               <Link href="/community/map" className="inline-block px-8 py-4 bg-primary text-white font-bold rounded-full hover:bg-orange-600 transition-all font-display text-lg">
-                 Открыть полную карту
-               </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HomeCommunityMapSection />
 
       {/* Gallery Carousel Demo */}
       <section className="py-24 bg-surface-container-low overflow-hidden relative">
@@ -345,6 +289,6 @@ export default function Home() {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       ` }} />
-    </>
+    </div>
   );
 }
